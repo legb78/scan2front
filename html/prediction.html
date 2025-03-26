@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prédiction d'Achats - Scan2Front</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .prediction-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .prediction-title h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        .prediction-controls {
+            background-color: var(--bg-light);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        .period-badge {
+            margin-right: 10px;
+            margin-bottom: 5px;
+            background-color: #f0f0f0;
+            color: var(--text-color);
+            padding: 8px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .period-badge.selected {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .period-badge:hover:not(.selected) {
+            background-color: #e0e0e0;
+        }
+        
+        .feature-badge {
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background-color: #f0f0f0;
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: inline-block;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .feature-badge.selected {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .feature-badge:hover:not(.selected) {
+            background-color: #e0e0e0;
+        }
+        
+        .prediction-card {
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+            height: 100%;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--bg-light);
+        }
+        
+        .prediction-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .prediction-header {
+            padding: 15px;
+            border-radius: 5px 5px 0 0;
+            position: relative;
+            overflow: hidden;
+            background-color: rgba(var(--primary-rgb), 0.1);
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .probability-indicator {
+            width: 100%;
+            height: 8px;
+            background-color: #e9ecef;
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .probability-bar {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 1s ease-in-out;
+        }
+        
+        .probability-low {
+            background-color: #ff9800;
+        }
+        
+        .probability-medium {
+            background-color: #4CAF50;
+        }
+        
+        .probability-high {
+            background-color: #2196F3;
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        
+        .stat-item:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        .loader {
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+        
+        .chart-container:hover {
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .table-responsive {
+            background-color: var(--bg-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .table tbody tr {
+            transition: all 0.2s;
+        }
+        
+        .table tbody tr:hover {
+            background-color: rgba(var(--primary-rgb), 0.05);
+            transform: translateX(5px);
+        }
+        
+        .badge-probability {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .badge-probability.high {
+            background-color: #2196F3;
+        }
+        
+        .badge-probability.medium {
+            background-color: #4CAF50;
+        }
+        
+        .badge-probability.low {
+            background-color: #ff9800;
+        }
+        
+        .time-series-insights {
+            background-color: rgba(var(--primary-rgb), 0.03);
+            border-radius: var(--radius-sm);
+            padding: 10px;
+            border-left: 3px solid var(--primary-color);
+        }
+        
+        .trend-icon {
+            font-size: 0.9rem;
+            margin-right: 5px;
+        }
+        
+        .trend-up {
+            color: #4CAF50;
+        }
+        
+        .trend-down {
+            color: #f44336;
+        }
+        
+        .trend-stable {
+            color: #ff9800;
+        }
+    </style>
+</head>
+<body>
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content">
+            <div class="logo">
+                <img src="../images/log.png" alt="Scan2Front Logo" class="logo-img">
+                Scan2Front
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="../images/log.png" alt="Scan2Front Logo" class="sidebar-logo">
+            <h2>Scan2Front</h2>
+        </div>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/dashboard"><i class="fas fa-chart-line"></i> Tableau de bord</a>
+                </li>
+                <li>
+                    <a href="/dashboard#sales-section"><i class="fas fa-shopping-cart"></i> Ventes</a>
+                </li>
+                <li>
+                    <a href="/dashboard#stores-section"><i class="fas fa-store"></i> Magasins</a>
+                </li>
+                <li>
+                    <a href="/dashboard#products-section"><i class="fas fa-box"></i> Produits</a>
+                </li>
+                <li>
+                    <a href="/dashboard#clients-section"><i class="fas fa-users"></i> Clients</a>
+                </li>
+                <li>
+                    <a href="/dashboard#loyalty-section"><i class="fas fa-award"></i> Programme Fidélité</a>
+                </li>
+                <li>
+                    <a href="/profiling"><i class="fas fa-users-cog"></i> Profiling Clients</a>
+                </li>
+                <li class="active">
+                    <a href="/prediction"><i class="fas fa-chart-line"></i> Prédiction Achats</a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/"><i class="fas fa-arrow-left"></i> Retour au site</a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Rechercher un client...">
+            </div>
+            <div class="header-user">
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p>Thomas Dupont</p>
+                        <span>Administrateur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="dashboard-content">
+            <div class="prediction-title">
+                <h1>Prédiction des Achats Futurs</h1>
+                <div class="actions">
+                    <button id="export-pdf" class="btn btn-primary"><i class="fas fa-file-pdf me-2"></i>Exporter en PDF</button>
+                    <button id="reset-analysis" class="btn btn-outline-primary ms-2"><i class="fas fa-redo me-2"></i>Nouvelle analyse</button>
+                </div>
+            </div>
+            
+            <!-- Prediction Controls -->
+            <div class="prediction-controls mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Période de prédiction</h5>
+                        <div id="period-selection">
+                            <span class="period-badge" data-period="day">Jour</span>
+                            <span class="period-badge selected" data-period="week">Semaine</span>
+                            <span class="period-badge" data-period="month">Mois</span>
+                            <span class="period-badge" data-period="quarter">Trimestre</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Caractéristiques pour l'analyse</h5>
+                        <div id="features-selection">
+                            <span class="feature-badge selected" data-feature="age">Âge</span>
+                            <span class="feature-badge selected" data-feature="points_cumules">Points cumulés</span>
+                            <span class="feature-badge selected" data-feature="nombre_achats">Nombre d'achats</span>
+                            <span class="feature-badge selected" data-feature="points_actuels">Points actuels</span>
+                            <span class="feature-badge" data-feature="points_utilises">Points utilisés</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12 text-center">
+                        <button id="run-prediction" class="btn btn-primary"><i class="fas fa-play me-2"></i>Lancer la prédiction</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Results -->
+            <div id="prediction-results" style="display: none;">
+                <h3 class="mb-4">Résultats de la Prédiction</h3>
+                <div id="model-accuracy" class="alert alert-info mb-4">
+                    <div class="row">
+                        <div class="col-md-7">
+                            <h5><i class="fas fa-info-circle me-2"></i>Taux de précision global: <span id="accuracy-value">0</span>%</h5>
+                            <p class="mb-0">Ce taux représente la fiabilité des prédictions de montants d'achats basées sur les données historiques.</p>
+                        </div>
+                        <div class="col-md-5">
+                            <div class="model-details">
+                                <h6>Modèle sélectionné: <span id="best-model-name" class="text-primary">-</span></h6>
+                                <div class="small">
+                                    <div>Score R²: <span id="r2-score">-</span></div>
+                                    <div>Erreur moyenne: <span id="mae-value">-</span> €</div>
+                                </div>
+                                <div class="mt-2 small">
+                                    <button class="btn btn-sm btn-outline-info" id="show-models-btn" type="button" data-bs-toggle="collapse" data-bs-target="#modelComparisonCollapse" aria-expanded="false" aria-controls="modelComparisonCollapse">
+                                        Comparer les deux modèles <i class="fas fa-chevron-down ms-1"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="collapse mt-3" id="modelComparisonCollapse">
+                        <div class="card card-body p-2">
+                            <h6 class="mb-2">Comparaison des modèles:</h6>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Modèle</th>
+                                            <th>Score R²</th>
+                                            <th>Erreur (RMSE)</th>
+                                            <th>Erreur moyenne (MAE)</th>
+                                            <th>Statut</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="models-comparison-table">
+                                        <!-- Model comparison will be inserted here by JS -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Charts -->
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Montants prédits par client</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="probability-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Répartition des prédictions</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="prediction-pie-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Prediction Cards -->
+                <h3 class="mb-3">Top 5 Clients avec prédiction d'achat</h3>
+                <div class="row" id="prediction-cards-container">
+                    <!-- Cards will be inserted here by JS -->
+                </div>
+                
+                <!-- Table with all predictions -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Toutes les prédictions d'achats</h5>
+                                <div class="mt-2">
+                                    <input type="text" class="form-control" id="search-predictions" placeholder="Rechercher un client...">
+                                </div>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID Client</th>
+                                                <th>Nom</th>
+                                                <th>Segment</th>
+                                                <th>Montant prédit</th>
+                                                <th>Précision</th>
+                                                <th>Produits prédits</th>
+                                                <th>Date prévue</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="predictions-table">
+                                            <!-- Predictions will be inserted here by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading indicator -->
+            <div id="loading-indicator" style="display: none;">
+                <div class="text-center p-5">
+                    <div class="loader"></div>
+                    <p class="mt-3">Analyse en cours, veuillez patienter...</p>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="error-message" class="alert alert-danger mt-3" style="display: none;">
+                Une erreur s'est produite lors de l'analyse. Veuillez réessayer.
+            </div>
+        </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Hide preloader on page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.querySelector('.preloader').style.opacity = '0';
+                document.querySelector('.preloader').style.visibility = 'hidden';
+            }, 500);
+        });
+    
+        // Period badge selection
+        document.querySelectorAll('.period-badge').forEach(badge => {
+            badge.addEventListener('click', function() {
+                document.querySelectorAll('.period-badge').forEach(b => b.classList.remove('selected'));
+                this.classList.add('selected');
+            });
+        });
+        
+        // Feature badges selection
+        document.querySelectorAll('.feature-badge').forEach(badge => {
+            badge.addEventListener('click', function() {
+                this.classList.toggle('selected');
+                // Ensure at least one feature is selected
+                if (document.querySelectorAll('.feature-badge.selected').length === 0) {
+                    this.classList.add('selected');
+                }
+            });
+        });
+        
+        // Charts
+        let probabilityChart = null;
+        let predictionPieChart = null;
+        
+        // Run prediction analysis
+        document.getElementById('run-prediction').addEventListener('click', async function() {
+            try {
+                // Show loading indicator
+                document.getElementById('loading-indicator').style.display = 'block';
+                document.getElementById('prediction-results').style.display = 'none';
+                document.getElementById('error-message').style.display = 'none';
+                
+                // Get selected features
+                const selectedFeatures = [];
+                document.querySelectorAll('.feature-badge.selected').forEach(badge => {
+                    selectedFeatures.push(badge.dataset.feature);
+                });
+                
+                // Get prediction period
+                const selectedPeriod = document.querySelector('.period-badge.selected').dataset.period;
+                
+                // Prepare request data
+                const requestData = {
+                    period: selectedPeriod,
+                    features: selectedFeatures
+                };
+                
+                // Send request to server
+                const response = await fetch('/api/prediction', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.statusText);
+                }
+                
+                const data = await response.json();
+                
+                displayPredictionResults(data);
+                
+                // Hide loading indicator
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('prediction-results').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error running prediction analysis:', error);
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').textContent = 'Erreur: ' + error.message;
+            }
+        });
+        
+        // Store the prediction data globally
+        let predictionData = null;
+        
+        function displayPredictionResults(data) {
+            // Store the data globally
+            predictionData = data;
+            
+            // Update model accuracy display
+            document.getElementById('accuracy-value').textContent = data.amount_accuracy || 'N/A';
+            
+            // Update best model info with animation
+            const bestModelNameElement = document.getElementById('best-model-name');
+            bestModelNameElement.textContent = '';
+            
+            // Fade in animation for best model name
+            setTimeout(() => {
+                const modelName = data.model_metrics?.best_model || 'Gradient Boosting';
+                bestModelNameElement.textContent = modelName;
+                bestModelNameElement.style.transition = 'color 0.5s ease';
+                bestModelNameElement.style.color = 'var(--primary-color)';
+                
+                setTimeout(() => {
+                    bestModelNameElement.style.color = '';
+                }, 1000);
+                
+                // Update other metrics
+                if (data.model_metrics) {
+                    document.getElementById('r2-score').textContent = data.model_metrics.r2_score || 'N/A';
+                    document.getElementById('mae-value').textContent = (data.model_metrics.mae || 'N/A') + ' €';
+                }
+                
+                // Update models comparison table - Utiliser model_comparison au lieu de top_2_models
+                if (data.model_comparison) {
+                    updateModelsComparisonTable(data.model_comparison);
+                } else {
+                    console.warn('No model comparison data available');
+                }
+            }, 300);
+            
+            // Create prediction cards
+            if (data.predictions && data.predictions.length > 0) {
+                createPredictionCards(data.predictions.slice(0, 5));
+                
+                // Update predictions table
+                updatePredictionsTable(data.predictions);
+                
+                // Create/update charts
+                createProbabilityChart(data.predictions.slice(0, 20));
+                createPredictionPieChart(data.predictions);
+            } else {
+                console.warn('No predictions data available');
+            }
+            
+            // Auto-expand model comparison if there is model comparison data
+            if (data.model_comparison && Object.keys(data.model_comparison).length > 0) {
+                setTimeout(() => {
+                    const modelComparisonCollapse = document.getElementById('modelComparisonCollapse');
+                    if (modelComparisonCollapse && !modelComparisonCollapse.classList.contains('show')) {
+                        document.getElementById('show-models-btn').click();
+                    }
+                }, 1000);
+            }
+        }
+        
+        function updateModelsComparisonTable(modelsData) {
+            if (!modelsData || typeof modelsData !== 'object') {
+                console.warn('Models comparison data is not valid', modelsData);
+                return;
+            }
+            
+            const tbody = document.getElementById('models-comparison-table');
+            tbody.innerHTML = '';
+            
+            try {
+                // Transforme l'objet en tableau pour pouvoir trier
+                const modelEntries = Object.entries(modelsData);
+                
+                // Si aucune entrée, ne pas continuer
+                if (modelEntries.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="text-center">Aucune donnée de comparaison disponible</td></tr>';
+                    return;
+                }
+                
+                // Trie par score R² décroissant si possible
+                modelEntries.sort((a, b) => {
+                    const r2A = a[1].r2 || 0;
+                    const r2B = b[1].r2 || 0;
+                    return r2B - r2A;
+                });
+                
+                // Génère les lignes du tableau
+                modelEntries.forEach(([name, metrics]) => {
+                    const row = document.createElement('tr');
+                    
+                    // Mettre en évidence le meilleur modèle
+                    const isBest = predictionData && predictionData.model_metrics && 
+                                  name === predictionData.model_metrics.best_model;
+                    if (isBest) {
+                        row.classList.add('table-primary');
+                    }
+                    
+                    const statusBadge = isBest 
+                        ? '<span class="badge bg-primary">Sélectionné</span>'
+                        : '<span class="badge bg-secondary">Non sélectionné</span>';
+                    
+                    row.innerHTML = `
+                        <td><strong>${name}</strong></td>
+                        <td>${metrics.r2 || 'N/A'}</td>
+                        <td>${metrics.rmse ? metrics.rmse + ' €' : 'N/A'}</td>
+                        <td>${metrics.mae ? metrics.mae + ' €' : 'N/A'}</td>
+                        <td>${statusBadge}</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // Ajouter un message explicatif sous le tableau
+                const tableContainer = document.querySelector('#modelComparisonCollapse .table-responsive');
+                if (tableContainer) {
+                    const infoText = document.createElement('div');
+                    infoText.className = 'small text-muted mt-2';
+                    infoText.innerHTML = 'Le modèle avec le meilleur score R² (plus proche de 1) est automatiquement sélectionné. ' +
+                                        'Un modèle avec une erreur moyenne (MAE) plus basse offre des prédictions plus précises.';
+                    
+                    // Remplacer l'info existante s'il y en a une
+                    const existingInfo = tableContainer.nextElementSibling;
+                    if (existingInfo && existingInfo.classList.contains('small')) {
+                        existingInfo.replaceWith(infoText);
+                    } else {
+                        tableContainer.parentNode.appendChild(infoText);
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating models comparison table:', error);
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center">Erreur lors de l\'affichage des données de comparaison</td></tr>';
+            }
+        }
+        
+        function createPredictionCards(predictions) {
+            const container = document.getElementById('prediction-cards-container');
+            container.innerHTML = '';
+            
+            predictions.forEach(prediction => {
+                const card = document.createElement('div');
+                card.className = 'col-md-6 col-xl-4 mb-4';
+                
+                // Determine accuracy class
+                let accuracyClass = 'low';
+                if (prediction.amount_accuracy >= 75) {
+                    accuracyClass = 'high';
+                } else if (prediction.amount_accuracy >= 60) {
+                    accuracyClass = 'medium';
+                }
+                
+                // Get products HTML
+                let productsHtml = '<p class="text-muted small">Aucun produit prédit</p>';
+                if (prediction.predicted_products && prediction.predicted_products.length > 0) {
+                    productsHtml = '<ul class="list-unstyled">';
+                    prediction.predicted_products.slice(0, 3).forEach(product => {
+                        productsHtml += `
+                            <li class="product-item">
+                                <div class="d-flex justify-content-between">
+                                    <span><i class="fas fa-tag me-1"></i> ${product.name}</span>
+                                    <span>${product.avg_price.toLocaleString('fr-FR')} €</span>
+                                </div>
+                                <div class="small text-muted">${product.category}</div>
+                            </li>
+                        `;
+                    });
+                    productsHtml += '</ul>';
+                }
+                
+                card.innerHTML = `
+                    <div class="prediction-card card shadow-sm" data-client-id="${prediction.client_id}">
+                        <div class="prediction-header">
+                            <h5 class="mb-0">${prediction.nom}</h5>
+                            <small class="text-muted">${prediction.client_id} - ${prediction.segment}</small>
+                        </div>
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <strong>Précision du montant: ${prediction.amount_accuracy}%</strong>
+                                <div class="probability-indicator">
+                                    <div class="probability-bar probability-${accuracyClass}" style="width: ${prediction.amount_accuracy}%"></div>
+                                </div>
+                            </div>
+                            <div class="stat-item">
+                                <span>Montant prédit:</span>
+                                <strong>${prediction.predicted_amount.toLocaleString('fr-FR')} €</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span>Achats prévus:</span>
+                                <strong>${prediction.predicted_frequency.toFixed(1)}</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span>Date prévue:</span>
+                                <strong>${formatDate(prediction.expected_purchase_date)}</strong>
+                            </div>
+                            ${renderTimeSeriesInsights(prediction.time_series_insights)}
+                            <div class="mt-3">
+                                <h6 class="mb-2">Produits susceptibles d'être achetés:</h6>
+                                ${productsHtml}
+                            </div>
+                            <div class="mt-2">
+                                <span class="badge bg-secondary">${prediction.prediction_period}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Add interaction for cards
+            document.querySelectorAll('.prediction-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const clientId = this.dataset.clientId;
+                    
+                    // Scroll to the table and highlight the corresponding row
+                    const tableRow = document.querySelector(`#predictions-table tr[data-client-id="${clientId}"]`);
+                    if (tableRow) {
+                        tableRow.classList.add('bg-light');
+                        tableRow.style.transform = 'translateX(10px)';
+                        tableRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // Reset highlight after 2 seconds
+                        setTimeout(() => {
+                            tableRow.classList.remove('bg-light');
+                            tableRow.style.transform = '';
+                        }, 2000);
+                    }
+                });
+            });
+        }
+        
+        function updatePredictionsTable(predictions) {
+            const tbody = document.getElementById('predictions-table');
+            tbody.innerHTML = '';
+            
+            predictions.forEach(prediction => {
+                const row = document.createElement('tr');
+                row.dataset.clientId = prediction.client_id;
+                
+                // Determine accuracy class
+                let accuracyClass = 'low';
+                if (prediction.amount_accuracy >= 75) {
+                    accuracyClass = 'high';
+                } else if (prediction.amount_accuracy >= 60) {
+                    accuracyClass = 'medium';
+                }
+                
+                // Get predicted products as comma separated string (max 2)
+                let productsText = "Aucun";
+                if (prediction.predicted_products && prediction.predicted_products.length > 0) {
+                    productsText = prediction.predicted_products
+                        .slice(0, 2)
+                        .map(p => p.name)
+                        .join(", ");
+                    
+                    if (prediction.predicted_products.length > 2) {
+                        productsText += "...";
+                    }
+                }
+                
+                // Get trend info
+                let trendHtml = '';
+                if (prediction.time_series_insights && prediction.time_series_insights.trend) {
+                    const trend = prediction.time_series_insights.trend;
+                    let trendIcon, trendClass;
+                    
+                    if (trend === 'à la hausse') {
+                        trendIcon = 'fa-arrow-trend-up';
+                        trendClass = 'trend-up';
+                    } else if (trend === 'à la baisse') {
+                        trendIcon = 'fa-arrow-trend-down';
+                        trendClass = 'trend-down';
+                    } else {
+                        trendIcon = 'fa-arrows-left-right';
+                        trendClass = 'trend-stable';
+                    }
+                    
+                    trendHtml = `<i class="fas ${trendIcon} trend-icon ${trendClass}" title="Tendance: ${trend}"></i>`;
+                }
+                
+                row.innerHTML = `
+                    <td>${prediction.client_id}</td>
+                    <td>${prediction.nom}</td>
+                    <td>${prediction.segment}</td>
+                    <td>${trendHtml}${prediction.predicted_amount.toLocaleString('fr-FR')} €</td>
+                    <td><span class="badge-probability ${accuracyClass}">${prediction.amount_accuracy}%</span></td>
+                    <td>${productsText}</td>
+                    <td>${formatDate(prediction.expected_purchase_date)}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            // Add search functionality
+            document.getElementById('search-predictions').addEventListener('input', function() {
+                const searchText = this.value.toLowerCase();
+                const rows = tbody.querySelectorAll('tr');
+                
+                rows.forEach(row => {
+                    const id = row.cells[0].textContent.toLowerCase();
+                    const name = row.cells[1].textContent.toLowerCase();
+                    const segment = row.cells[2].textContent.toLowerCase();
+                    
+                    if (id.includes(searchText) || name.includes(searchText) || segment.includes(searchText)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        function createProbabilityChart(predictions) {
+            const ctx = document.getElementById('probability-chart').getContext('2d');
+            
+            // If chart already exists, destroy it
+            if (probabilityChart) {
+                probabilityChart.destroy();
+            }
+            
+            // Sort predictions by amount (descending)
+            predictions.sort((a, b) => b.predicted_amount - a.predicted_amount);
+            
+            // Prepare data
+            const labels = predictions.map(p => p.client_id);
+            const data = predictions.map(p => p.predicted_amount);
+            const accuracyData = predictions.map(p => p.amount_accuracy);
+            const colors = predictions.map(p => {
+                if (p.amount_accuracy >= 75) return '#2196F3';  // high
+                if (p.amount_accuracy >= 60) return '#4CAF50';  // medium
+                return '#ff9800';  // low
+            });
+            
+            // Create the chart
+            probabilityChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Montant prédit (€)',
+                        data: data,
+                        backgroundColor: colors,
+                        borderColor: colors.map(c => c),
+                        borderWidth: 1,
+                        borderRadius: 5,
+                        barThickness: 15,
+                        maxBarThickness: 25,
+                        yAxisID: 'y'
+                    }, {
+                        label: 'Précision (%)',
+                        data: accuracyData,
+                        type: 'line',
+                        borderColor: '#ff6384',
+                        backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointBackgroundColor: '#ff6384',
+                        fill: false,
+                        yAxisID: 'y1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Top 20 Clients par Montant d\'Achat Prédit',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: function(tooltipItems) {
+                                    const idx = tooltipItems[0].dataIndex;
+                                    return predictions[idx].nom;
+                                },
+                                label: function(context) {
+                                    const idx = context.dataIndex;
+                                    if (context.dataset.label.includes('Montant')) {
+                                        return [
+                                            `Montant prédit: ${context.parsed.x.toLocaleString('fr-FR')} €`,
+                                            `Précision: ${predictions[idx].amount_accuracy}%`,
+                                            `Date prévue: ${formatDate(predictions[idx].expected_purchase_date)}`
+                                        ];
+                                    } else {
+                                        return `Précision: ${context.parsed.x}%`;
+                                    }
+                                }
+                            }
+                        },
+                        legend: {
+                            display: true
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Montant prédit (€)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString('fr-FR') + ' €';
+                                }
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Client ID',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: 'Précision (%)',
+                                font: {
+                                    weight: 'bold'
+                                }
+                            },
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                drawOnChartArea: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function createPredictionPieChart(predictions) {
+            const ctx = document.getElementById('prediction-pie-chart').getContext('2d');
+            
+            // If chart already exists, destroy it
+            if (predictionPieChart) {
+                predictionPieChart.destroy();
+            }
+            
+            // Count predictions by price range
+            let lowPriceCount = 0;
+            let mediumPriceCount = 0;
+            let highPriceCount = 0;
+            
+            // Define price thresholds - adjust based on your data
+            const lowThreshold = 50;  // Below 50€
+            const highThreshold = 150; // Above 150€
+            
+            predictions.forEach(p => {
+                if (p.predicted_amount >= highThreshold) {
+                    highPriceCount++;
+                } else if (p.predicted_amount >= lowThreshold) {
+                    mediumPriceCount++;
+                } else {
+                    lowPriceCount++;
+                }
+            });
+            
+            // Create the pie chart
+            predictionPieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        `Achats importants (≥${highThreshold}€)`,
+                        `Achats moyens (${lowThreshold}-${highThreshold-1}€)`,
+                        `Petits achats (<${lowThreshold}€)`
+                    ],
+                    datasets: [{
+                        data: [highPriceCount, mediumPriceCount, lowPriceCount],
+                        backgroundColor: ['#2196F3', '#4CAF50', '#ff9800'],
+                        borderColor: ['#fff', '#fff', '#fff'],
+                        borderWidth: 2,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '50%',
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Répartition par Montant Prédit',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const total = predictions.length;
+                                    const percentage = ((value / total) * 100).toFixed(1);
+                                    return `${value} clients (${percentage}%)`;
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 15,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Reset analysis button
+        document.getElementById('reset-analysis').addEventListener('click', function() {
+            document.getElementById('prediction-results').style.display = 'none';
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+            
+            // Reset period selection
+            document.querySelectorAll('.period-badge').forEach(badge => {
+                badge.classList.remove('selected');
+                if (badge.dataset.period === 'week') {
+                    badge.classList.add('selected');
+                }
+            });
+            
+            // Reset feature selection
+            document.querySelectorAll('.feature-badge').forEach(badge => {
+                if (['age', 'points_cumules', 'nombre_achats', 'points_actuels'].includes(badge.dataset.feature)) {
+                    badge.classList.add('selected');
+                } else {
+                    badge.classList.remove('selected');
+                }
+            });
+        });
+        
+        // Helper function to format dates
+        function formatDate(dateString) {
+            if (!dateString) return 'N/A';
+            
+            const date = new Date(dateString);
+            return new Intl.DateTimeFormat('fr-FR', {
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric'
+            }).format(date);
+        }
+        
+        // Export to PDF functionality
+        document.getElementById('export-pdf').addEventListener('click', function() {
+            if (!predictionData) {
+                alert("Veuillez d'abord effectuer une prédiction");
+                return;
+            }
+            
+            alert("Fonctionnalité d'export en PDF à implémenter");
+            // L'implémentation de l'export PDF suivrait le même modèle que dans profiling.html
+        });
+        
+        // Helper function to render time series insights
+        function renderTimeSeriesInsights(insights) {
+            if (!insights || Object.keys(insights).length === 0) {
+                return '';
+            }
+            
+            // Define trend icon and color
+            let trendIcon, trendColor;
+            if (insights.trend === 'increasing' || insights.trend === 'à la hausse') {
+                trendIcon = 'fa-arrow-up';
+                trendColor = 'text-success';
+            } else if (insights.trend === 'decreasing' || insights.trend === 'à la baisse') {
+                trendIcon = 'fa-arrow-down';
+                trendColor = 'text-danger';
+            } else {
+                trendIcon = 'fa-arrow-right';
+                trendColor = 'text-secondary';
+            }
+            
+            // Convert trend to French text for display
+            let trendText;
+            if (insights.trend === 'increasing' || insights.trend === 'à la hausse') {
+                trendText = 'à la hausse';
+            } else if (insights.trend === 'decreasing' || insights.trend === 'à la baisse') {
+                trendText = 'à la baisse';
+            } else {
+                trendText = 'stable';
+            }
+            
+            return `
+            <div class="mt-3 mb-2">
+                <h6 class="mb-2">Historique et tendance:</h6>
+                <div class="d-flex align-items-center mb-1">
+                    <div class="trend-icon ${trendColor}">
+                        <i class="fas ${trendIcon}"></i>
+                    </div>
+                    <div class="ms-2">
+                        <div>Tendance <strong>${trendText}</strong></div>
+                        <div class="small text-muted">${insights.purchase_history || 0} achats analysés</div>
+                    </div>
+                </div>
+                <div class="small">
+                    Achat moyen: <strong>${insights.avg_purchase?.toLocaleString('fr-FR') || 0} €</strong>
+                </div>
+            </div>
+            `;
+        }
+    </script>
+</body>
+</html> 

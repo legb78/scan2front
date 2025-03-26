@@ -5,12 +5,19 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js"
+    "dev": "nodemon server.js",
+    "install-python-deps": "pip install numpy pandas scikit-learn matplotlib"
   },
   "dependencies": {
     "express": "^4.18.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
+  },
+  "pythonDependencies": {
+    "numpy": "^1.24.0",
+    "pandas": "^2.0.0",
+    "scikit-learn": "^1.2.0",
+    "matplotlib": "^3.7.0"
   }
 } 

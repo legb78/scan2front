@@ -1,0 +1,1393 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profiling des Clients - Scan2Front</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .cluster-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+            height: 100%;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--bg-light);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        
+        .cluster-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .cluster-card:active {
+            transform: translateY(-2px);
+        }
+        
+        .cluster-card::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .cluster-card:hover::after {
+            opacity: 0.4;
+        }
+        
+        .cluster-header {
+            padding: 15px;
+            border-radius: 5px 5px 0 0;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cluster-header::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.3s, transform 0.5s;
+        }
+        
+        .cluster-card:hover .cluster-header::before {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .customer-type {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            transition: color 0.3s;
+        }
+        
+        .cluster-card:hover .customer-type {
+            color: var(--primary-color);
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        
+        .stat-item:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+        
+        .chart-container:hover {
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .cluster-controls {
+            background-color: var(--bg-light);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        .feature-badge {
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background-color: #f0f0f0;
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: inline-block;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .feature-badge.selected {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .feature-badge:hover:not(.selected) {
+            background-color: #e0e0e0;
+        }
+        
+        .sample-clients {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .loader {
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .cluster-colors {
+            --cluster-0-color: #06d6a0;
+            --cluster-1-color: #118ab2;
+            --cluster-2-color: #ef476f;
+            --cluster-3-color: #ffd166;
+            --cluster-4-color: #073b4c;
+            --cluster-5-color: #9c89b8;
+            --centers-shadow-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .profiling-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .profiling-title h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        .table-responsive {
+            background-color: var(--bg-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        table {
+            margin-bottom: 0;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .error-container {
+            padding: 2rem;
+            text-align: center;
+            background-color: var(--bg-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .error-container i {
+            font-size: 3rem;
+            color: var(--danger-color);
+            margin-bottom: 1rem;
+        }
+        
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: rgba(var(--primary-rgb), 0.05);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+        }
+        
+        .card-header h5 {
+            margin: 0;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body class="cluster-colors">
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content">
+            <div class="logo">
+                <img src="../images/log.png" alt="Scan2Front Logo" class="logo-img">
+                Scan2Front
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="../images/log.png" alt="Scan2Front Logo" class="sidebar-logo">
+            <h2>Scan2Front</h2>
+        </div>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/dashboard"><i class="fas fa-chart-line"></i> Tableau de bord</a>
+                </li>
+                <li>
+                    <a href="/dashboard#sales-section"><i class="fas fa-shopping-cart"></i> Ventes</a>
+                </li>
+                <li>
+                    <a href="/dashboard#stores-section"><i class="fas fa-store"></i> Magasins</a>
+                </li>
+                <li>
+                    <a href="/dashboard#products-section"><i class="fas fa-box"></i> Produits</a>
+                </li>
+                <li>
+                    <a href="/dashboard#clients-section"><i class="fas fa-users"></i> Clients</a>
+                </li>
+                <li>
+                    <a href="/dashboard#loyalty-section"><i class="fas fa-award"></i> Programme Fidélité</a>
+                </li>
+                <li class="active">
+                    <a href="/profiling"><i class="fas fa-users-cog"></i> Profiling Clients</a>
+                </li>
+                <li>
+                    <a href="/prediction"><i class="fas fa-chart-line"></i> Prédiction Achats</a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/"><i class="fas fa-arrow-left"></i> Retour au site</a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Rechercher un client...">
+            </div>
+            <div class="header-user">
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p>Thomas Dupont</p>
+                        <span>Administrateur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="dashboard-content">
+            <div class="profiling-title">
+                <h1>Profiling et Clustering des Clients</h1>
+                <div class="actions">
+                    <button id="export-pdf" class="btn btn-primary"><i class="fas fa-file-pdf me-2"></i>Exporter en PDF</button>
+                    <button id="reset-analysis" class="btn btn-outline-primary ms-2"><i class="fas fa-redo me-2"></i>Nouvelle analyse</button>
+                </div>
+            </div>
+            
+            <!-- Clustering Controls -->
+            <div class="cluster-controls mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Configuration du clustering</h5>
+                        <div class="mb-3">
+                            <label for="num-clusters" class="form-label">Nombre de segments (clusters): <span id="clusters-value">3</span></label>
+                            <div class="d-flex align-items-center">
+                                <input type="range" class="form-range me-3" min="2" max="6" step="1" id="num-clusters" value="3" style="flex: 1;">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary" id="decrease-clusters">-</button>
+                                    <button type="button" class="btn btn-outline-primary" id="increase-clusters">+</button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <span class="badge bg-secondary">2</span>
+                                <span class="badge bg-secondary">3</span>
+                                <span class="badge bg-secondary">4</span>
+                                <span class="badge bg-secondary">5</span>
+                                <span class="badge bg-secondary">6</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Caractéristiques pour l'analyse</h5>
+                        <div id="features-selection">
+                            <span class="feature-badge selected" data-feature="age">Âge</span>
+                            <span class="feature-badge selected" data-feature="points_cumules">Points cumulés</span>
+                            <span class="feature-badge selected" data-feature="nombre_achats">Nombre d'achats</span>
+                            <span class="feature-badge" data-feature="points_actuels">Points actuels</span>
+                            <span class="feature-badge" data-feature="points_utilises">Points utilisés</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12 text-center">
+                        <button id="run-clustering" class="btn btn-primary"><i class="fas fa-play me-2"></i>Lancer l'analyse</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Results -->
+            <div id="analysis-results" style="display: none;">
+                <h3 class="mb-4">Résultats de l'Analyse</h3>
+                
+                <!-- Charts -->
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Distribution des Clusters</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="scatter-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Répartition des Segments</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="pie-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cluster Cards -->
+                <h3 class="mb-3">Segments de clientèle identifiés</h3>
+                <div class="row" id="cluster-cards-container">
+                    <!-- Cluster cards will be inserted here by JS -->
+                </div>
+                
+                <!-- Sample Clients Table -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Échantillon de clients par segment</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID Client</th>
+                                                <th>Segment</th>
+                                                <th>Âge</th>
+                                                <th>Sexe</th>
+                                                <th>Statut</th>
+                                                <th>Points actuels</th>
+                                                <th>Nombre d'achats</th>
+                                                <th>Dernier achat</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sample-clients-table">
+                                            <!-- Sample clients will be inserted here by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading indicator -->
+            <div id="loading-indicator" style="display: none;">
+                <div class="text-center p-5">
+                    <div class="loader"></div>
+                    <p class="mt-3">Analyse en cours, veuillez patienter...</p>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="error-message" class="alert alert-danger mt-3" style="display: none;">
+                Une erreur s'est produite lors de l'analyse. Veuillez réessayer.
+            </div>
+        </div>
+    </main>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Hide preloader on page load
+        window.addEventListener('load', function() {
+            setTimeout(function() {
+                document.querySelector('.preloader').style.opacity = '0';
+                document.querySelector('.preloader').style.visibility = 'hidden';
+            }, 500);
+        });
+    
+        // Feature badges selection
+        document.querySelectorAll('.feature-badge').forEach(badge => {
+            badge.addEventListener('click', function() {
+                this.classList.toggle('selected');
+                // Ensure at least one feature is selected
+                if (document.querySelectorAll('.feature-badge.selected').length === 0) {
+                    this.classList.add('selected');
+                }
+            });
+        });
+        
+        // Charts
+        let scatterChart = null;
+        let pieChart = null;
+        
+        // Run clustering analysis
+        document.getElementById('run-clustering').addEventListener('click', async function() {
+            try {
+                // Show loading indicator
+                document.getElementById('loading-indicator').style.display = 'block';
+                document.getElementById('analysis-results').style.display = 'none';
+                document.getElementById('error-message').style.display = 'none';
+                
+                // Get selected features
+                const selectedFeatures = [];
+                document.querySelectorAll('.feature-badge.selected').forEach(badge => {
+                    selectedFeatures.push(badge.dataset.feature);
+                });
+                
+                // Get number of clusters
+                const numClusters = parseInt(document.getElementById('num-clusters').value);
+                
+                // Prepare request data
+                const requestData = {
+                    numClusters: numClusters,
+                    features: selectedFeatures
+                };
+                
+                // Send request to server
+                const response = await fetch('/api/clustering', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Server error: ' + response.statusText);
+                }
+                
+                const data = await response.json();
+                
+                // Process results
+                displayResults(data);
+                
+                // Hide loading indicator
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('analysis-results').style.display = 'block';
+                
+            } catch (error) {
+                console.error('Error running clustering analysis:', error);
+                document.getElementById('loading-indicator').style.display = 'none';
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('error-message').textContent = 'Erreur: ' + error.message;
+            }
+        });
+        
+        // Store the analysis data globally
+        let analysisData = null;
+        
+        function displayResults(data) {
+            // Store the data globally
+            analysisData = data;
+            
+            // Create cluster cards
+            createClusterCards(data.cluster_stats);
+            
+            // Update sample clients table
+            updateSampleClientsTable(data.sample_clients);
+            
+            // Create/update charts
+            createScatterChart(data.visualization_data);
+            createPieChart(data.cluster_stats);
+        }
+        
+        function createClusterCards(clusterStats) {
+            const container = document.getElementById('cluster-cards-container');
+            container.innerHTML = '';
+            
+            clusterStats.forEach((cluster, index) => {
+                const clusterColor = `var(--cluster-${cluster.cluster_id}-color)`;
+                
+                const card = document.createElement('div');
+                card.className = 'col-md-6 col-xl-4 mb-4';
+                card.innerHTML = `
+                    <div class="cluster-card card shadow-sm" data-cluster-id="${cluster.cluster_id}">
+                        <div class="cluster-header" style="background-color: ${clusterColor}">
+                            <h5 class="mb-0">Segment ${cluster.cluster_id + 1}</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="customer-type">${cluster.customer_type || 'Segment client'}</div>
+                            <div class="stat-item">
+                                <span>Taille du segment:</span>
+                                <strong>${cluster.size} clients (${cluster.percentage}%)</strong>
+                            </div>
+                            ${cluster.age_group ? 
+                                `<div class="stat-item">
+                                    <span>Groupe d'âge:</span>
+                                    <strong>${cluster.age_group}</strong>
+                                </div>` : ''}
+                            ${cluster.dominant_gender ? 
+                                `<div class="stat-item">
+                                    <span>Genre dominant:</span>
+                                    <strong>${cluster.dominant_gender} (${cluster.dominant_gender === 'Homme' ? cluster.homme_percentage : cluster.femme_percentage}%)</strong>
+                                </div>` : ''}
+                            ${cluster.loyalty_level ? 
+                                `<div class="stat-item">
+                                    <span>Niveau de fidélité:</span>
+                                    <strong>${cluster.loyalty_level}</strong>
+                                </div>` : ''}
+                            ${cluster.purchase_frequency ? 
+                                `<div class="stat-item">
+                                    <span>Fréquence d'achat:</span>
+                                    <strong>${cluster.purchase_frequency}</strong>
+                                </div>` : ''}
+                            <div class="stat-item">
+                                <span>Âge moyen:</span>
+                                <strong>${cluster.age_mean || 'N/A'} ans</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span>Points cumulés moy.:</span>
+                                <strong>${cluster.points_cumules_mean || 'N/A'} pts</strong>
+                            </div>
+                            <div class="stat-item">
+                                <span>Nombre d'achats moy.:</span>
+                                <strong>${cluster.nombre_achats_mean || 'N/A'}</strong>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.appendChild(card);
+            });
+            
+            // Ajouter l'interaction pour les cartes
+            document.querySelectorAll('.cluster-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const clusterId = this.dataset.clusterId;
+                    
+                    // Filtrer le tableau pour n'afficher que les clients de ce segment
+                    filterTableByCluster(clusterId);
+                    
+                    // Faire défiler jusqu'au tableau
+                    document.querySelector('.table-responsive').scrollIntoView({ behavior: 'smooth' });
+                });
+            });
+        }
+        
+        function updateSampleClientsTable(sampleClients) {
+            const tbody = document.getElementById('sample-clients-table');
+            tbody.innerHTML = '';
+            
+            // Stocker les échantillons pour pouvoir filtrer le tableau plus tard
+            window.allSampleClients = sampleClients;
+            
+            renderClientTable(sampleClients);
+        }
+        
+        function renderClientTable(clients) {
+            const tbody = document.getElementById('sample-clients-table');
+            tbody.innerHTML = '';
+            
+            clients.forEach(client => {
+                const row = document.createElement('tr');
+                row.dataset.clusterId = client.cluster;
+                const clusterColor = `var(--cluster-${client.cluster}-color)`;
+                
+                row.innerHTML = `
+                    <td>${client.client_id}</td>
+                    <td><span class="badge" style="background-color: ${clusterColor}">Segment ${client.cluster + 1}</span></td>
+                    <td>${client.age}</td>
+                    <td>${client.sexe}</td>
+                    <td>${client.statut}</td>
+                    <td>${client.points_actuels}</td>
+                    <td>${client.nombre_achats}</td>
+                    <td>${client.dernier_achat}</td>
+                `;
+                
+                tbody.appendChild(row);
+            });
+            
+            // Ajouter des effets de survol aux lignes du tableau
+            const rows = tbody.querySelectorAll('tr');
+            rows.forEach(row => {
+                row.addEventListener('mouseenter', function() {
+                    const clusterId = this.dataset.clusterId;
+                    highlightRowsOfSameCluster(clusterId);
+                });
+                
+                row.addEventListener('mouseleave', function() {
+                    resetTableHighlighting();
+                });
+            });
+        }
+        
+        function filterTableByCluster(clusterId) {
+            if (!window.allSampleClients) return;
+            
+            const filteredClients = window.allSampleClients.filter(client => 
+                client.cluster.toString() === clusterId.toString()
+            );
+            
+            if (filteredClients.length > 0) {
+                renderClientTable(filteredClients);
+                
+                // Afficher un message indiquant le filtre actif
+                const tableHeader = document.querySelector('.card-header h5');
+                tableHeader.innerHTML = `Échantillon de clients du segment ${parseInt(clusterId) + 1} <span class="badge bg-primary ms-2" id="reset-filter" style="cursor: pointer">Reset</span>`;
+                
+                // Ajouter un événement pour réinitialiser le filtre
+                document.getElementById('reset-filter').addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    renderClientTable(window.allSampleClients);
+                    tableHeader.textContent = 'Échantillon de clients par segment';
+                });
+            }
+        }
+        
+        function highlightRowsOfSameCluster(clusterId) {
+            const rows = document.querySelectorAll('#sample-clients-table tr');
+            rows.forEach(row => {
+                if (row.dataset.clusterId === clusterId) {
+                    row.style.backgroundColor = 'rgba(0, 123, 255, 0.1)';
+                    row.style.transform = 'translateX(5px)';
+                    row.style.transition = 'all 0.3s';
+                } else {
+                    row.style.opacity = '0.6';
+                }
+            });
+        }
+        
+        function resetTableHighlighting() {
+            const rows = document.querySelectorAll('#sample-clients-table tr');
+            rows.forEach(row => {
+                row.style.backgroundColor = '';
+                row.style.opacity = '';
+                row.style.transform = '';
+            });
+        }
+        
+        function createScatterChart(visualizationData) {
+            const ctx = document.getElementById('scatter-chart').getContext('2d');
+            
+            // If chart already exists, destroy it
+            if (scatterChart) {
+                scatterChart.destroy();
+            }
+            
+            // Prepare datasets by cluster
+            const datasets = [];
+            const uniqueClusters = [...new Set(visualizationData.cluster_labels)];
+            
+            uniqueClusters.forEach(clusterId => {
+                const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(`--cluster-${clusterId}-color`);
+                
+                // Filter points for this cluster
+                const points = visualizationData.points.filter((_, index) => visualizationData.cluster_labels[index] === clusterId);
+                
+                // Create dataset
+                const dataset = {
+                    label: `Segment ${clusterId + 1}`,
+                    data: points.map(point => ({ x: point[0], y: point[1] })),
+                    backgroundColor: clusterColor,
+                    pointRadius: 4,
+                    pointHoverRadius: 7,
+                    pointBorderWidth: 1,
+                    pointBorderColor: '#ffffff',
+                    pointHitRadius: 10
+                };
+                
+                datasets.push(dataset);
+            });
+            
+            // Add cluster centers as a separate dataset
+            const centerDataset = {
+                label: 'Centres des segments',
+                data: visualizationData.centers.map(center => ({ x: center[0], y: center[1] })),
+                backgroundColor: visualizationData.centers.map((_, i) => {
+                    // Utiliser la même couleur que les points du cluster mais plus lumineuse
+                    const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(`--cluster-${i}-color`);
+                    return clusterColor;
+                }),
+                pointRadius: 15,
+                pointStyle: 'rectRot',
+                pointHoverRadius: 18,
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                pointShadowBlur: 10,
+                pointShadowColor: 'var(--centers-shadow-color)'
+            };
+            
+            datasets.push(centerDataset);
+            
+            // Create chart with white background
+            scatterChart = new Chart(ctx, {
+                type: 'scatter',
+                data: {
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: {
+                        duration: 1000,
+                        easing: 'easeOutQuart'
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Visualisation des clusters (PCA)',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#333'
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(50, 50, 50, 0.9)',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            padding: 10,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    if (context.datasetIndex === datasets.length - 1) {
+                                        return [`Centre du segment ${context.dataIndex + 1}`, 
+                                                `Composante 1: ${context.parsed.x.toFixed(2)}`,
+                                                `Composante 2: ${context.parsed.y.toFixed(2)}`];
+                                    } else {
+                                        return [`${context.dataset.label}`,
+                                                `Composante 1: ${context.parsed.x.toFixed(2)}`,
+                                                `Composante 2: ${context.parsed.y.toFixed(2)}`];
+                                    }
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                color: '#333'
+                            },
+                            onHover: function(e, legendItem, legend) {
+                                document.body.style.cursor = 'pointer';
+                            },
+                            onLeave: function(e, legendItem, legend) {
+                                document.body.style.cursor = 'default';
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: `Composante 1 (${Math.round(visualizationData.explained_variance[0] * 100)}% de variance)`,
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                },
+                                color: '#333'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                borderColor: '#ccc'
+                            },
+                            ticks: {
+                                color: '#666'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: `Composante 2 (${Math.round(visualizationData.explained_variance[1] * 100)}% de variance)`,
+                                font: {
+                                    size: 13,
+                                    weight: 'bold'
+                                },
+                                color: '#333'
+                            },
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.05)',
+                                borderColor: '#ccc'
+                            },
+                            ticks: {
+                                color: '#666'
+                            }
+                        }
+                    },
+                    interaction: {
+                        mode: 'nearest',
+                        intersect: true,
+                        axis: 'xy'
+                    },
+                    hover: {
+                        mode: 'nearest',
+                        intersect: true
+                    }
+                }
+            });
+        }
+        
+        function createPieChart(clusterStats) {
+            const ctx = document.getElementById('pie-chart').getContext('2d');
+            
+            // If chart already exists, destroy it
+            if (pieChart) {
+                pieChart.destroy();
+            }
+            
+            // Prepare data
+            const labels = clusterStats.map(cluster => `Segment ${cluster.cluster_id + 1}${cluster.customer_type ? `: ${cluster.customer_type}` : ''}`);
+            const data = clusterStats.map(cluster => cluster.size);
+            const colors = clusterStats.map(cluster => {
+                return getComputedStyle(document.documentElement).getPropertyValue(`--cluster-${cluster.cluster_id}-color`);
+            });
+            
+            // Create chart
+            pieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        hoverOffset: 15,
+                        borderWidth: 3,
+                        borderColor: '#ffffff',
+                        hoverBorderColor: '#ffffff',
+                        weight: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '50%',
+                    animation: {
+                        animateRotate: true,
+                        animateScale: true,
+                        duration: 1200,
+                        easing: 'easeOutQuart'
+                    },
+                    layout: {
+                        padding: 10
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Répartition des clients par segment',
+                            font: {
+                                size: 16,
+                                weight: 'bold'
+                            },
+                            color: '#333',
+                            padding: {
+                                top: 10,
+                                bottom: 20
+                            }
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(50, 50, 50, 0.9)',
+                            titleFont: {
+                                size: 14,
+                                weight: 'bold'
+                            },
+                            bodyFont: {
+                                size: 13
+                            },
+                            padding: 12,
+                            cornerRadius: 8,
+                            callbacks: {
+                                label: function(context) {
+                                    const value = context.raw;
+                                    const percentage = clusterStats[context.dataIndex].percentage;
+                                    return [`${value} clients (${percentage}%)`,
+                                           `Type: ${clusterStats[context.dataIndex].customer_type || 'Non défini'}`,
+                                           `Âge moyen: ${clusterStats[context.dataIndex].age_mean || 'N/A'} ans`];
+                                }
+                            }
+                        },
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                },
+                                color: '#333',
+                                usePointStyle: true,
+                                generateLabels: function(chart) {
+                                    const data = chart.data;
+                                    if (data.labels.length && data.datasets.length) {
+                                        return data.labels.map((label, i) => {
+                                            const meta = chart.getDatasetMeta(0);
+                                            const style = meta.controller.getStyle(i);
+                                            return {
+                                                text: label,
+                                                fillStyle: style.backgroundColor,
+                                                strokeStyle: '#fff',
+                                                lineWidth: 2,
+                                                hidden: !chart.getDataVisibility(i),
+                                                index: i
+                                            };
+                                        });
+                                    }
+                                    return [];
+                                }
+                            },
+                            onHover: function(e, legendItem, legend) {
+                                document.body.style.cursor = 'pointer';
+                            },
+                            onLeave: function(e, legendItem, legend) {
+                                document.body.style.cursor = 'default';
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Ajout d'interactions pour relier les graphiques et les cartes
+            document.getElementById('pie-chart').onclick = function(evt) {
+                const activePoints = pieChart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, false);
+                if (activePoints.length > 0) {
+                    // Obtenir l'index du segment cliqué
+                    const firstPoint = activePoints[0];
+                    const segmentIndex = firstPoint.index;
+                    
+                    // Faire défiler la page jusqu'à la carte correspondante
+                    highlightClusterCard(segmentIndex);
+                }
+            };
+        }
+        
+        // Fonction pour mettre en évidence une carte de cluster
+        function highlightClusterCard(index) {
+            // Trouver toutes les cartes de clusters
+            const cards = document.querySelectorAll('.cluster-card');
+            
+            // Animation pour remettre les autres cartes à leur état normal
+            cards.forEach((card, i) => {
+                if (i !== index) {
+                    card.style.transform = 'translateY(0)';
+                    card.style.boxShadow = 'none';
+                    card.style.opacity = '0.7';
+                }
+            });
+            
+            // Animation pour mettre en évidence la carte sélectionnée
+            const selectedCard = cards[index];
+            if (selectedCard) {
+                selectedCard.style.transform = 'translateY(-10px)';
+                selectedCard.style.boxShadow = '0 15px 25px rgba(0,0,0,0.2)';
+                selectedCard.style.opacity = '1';
+                
+                // Faire défiler jusqu'à la carte
+                selectedCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                
+                // Rétablir l'état normal après 2 secondes
+                setTimeout(() => {
+                    cards.forEach(card => {
+                        card.style.transform = '';
+                        card.style.boxShadow = '';
+                        card.style.opacity = '';
+                    });
+                }, 2000);
+            }
+        }
+        
+        // Reset analysis
+        document.getElementById('reset-analysis').addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('analysis-results').style.display = 'none';
+            document.getElementById('loading-indicator').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+            
+            // Reset selection
+            document.querySelectorAll('.feature-badge').forEach(badge => {
+                if (badge.dataset.feature === 'age' || badge.dataset.feature === 'points_cumules' || badge.dataset.feature === 'nombre_achats') {
+                    badge.classList.add('selected');
+                } else {
+                    badge.classList.remove('selected');
+                }
+            });
+            
+            // Reset number of clusters
+            document.getElementById('num-clusters').value = 3;
+            document.getElementById('clusters-value').textContent = '3';
+            updateSelectedClusterBadge(3);
+        });
+        
+        // Number of clusters controls
+        const clusterRangeInput = document.getElementById('num-clusters');
+        const clustersValueSpan = document.getElementById('clusters-value');
+        const decreaseBtn = document.getElementById('decrease-clusters');
+        const increaseBtn = document.getElementById('increase-clusters');
+        
+        // Update the number of clusters display when the range slider changes
+        clusterRangeInput.addEventListener('input', function() {
+            const value = this.value;
+            clustersValueSpan.textContent = value;
+            updateSelectedClusterBadge(value);
+        });
+        
+        // Handle decrease button click
+        decreaseBtn.addEventListener('click', function() {
+            const currentValue = parseInt(clusterRangeInput.value);
+            if (currentValue > 2) {
+                const newValue = currentValue - 1;
+                clusterRangeInput.value = newValue;
+                clustersValueSpan.textContent = newValue;
+                updateSelectedClusterBadge(newValue);
+            }
+        });
+        
+        // Handle increase button click
+        increaseBtn.addEventListener('click', function() {
+            const currentValue = parseInt(clusterRangeInput.value);
+            if (currentValue < 6) {
+                const newValue = currentValue + 1;
+                clusterRangeInput.value = newValue;
+                clustersValueSpan.textContent = newValue;
+                updateSelectedClusterBadge(newValue);
+            }
+        });
+        
+        // Update the badge highlighting for the selected number of clusters
+        function updateSelectedClusterBadge(value) {
+            const badges = document.querySelectorAll('.cluster-controls .badge');
+            badges.forEach((badge, index) => {
+                if (index + 2 == value) {
+                    badge.classList.remove('bg-secondary');
+                    badge.classList.add('bg-primary');
+                } else {
+                    badge.classList.remove('bg-primary');
+                    badge.classList.add('bg-secondary');
+                }
+            });
+        }
+        
+        // Initialize the badge highlighting
+        updateSelectedClusterBadge(3);
+        
+        // Export to PDF functionality
+        document.getElementById('export-pdf').addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            if (!analysisData) {
+                alert("Veuillez d'abord effectuer une analyse");
+                return;
+            }
+            
+            // Montrer un indicateur de chargement
+            const loadingHTML = `
+                <div id="pdf-loading" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                    background-color: rgba(0,0,0,0.5); z-index: 9999; display: flex; 
+                    justify-content: center; align-items: center; flex-direction: column;">
+                    <div style="background-color: white; padding: 30px; border-radius: 10px; text-align: center;">
+                        <div class="loader" style="margin: 0 auto 20px;"></div>
+                        <p>Génération du PDF en cours...</p>
+                    </div>
+                </div>
+            `;
+            
+            document.body.insertAdjacentHTML('beforeend', loadingHTML);
+            
+            // Charger les bibliothèques nécessaires dynamiquement
+            Promise.all([
+                loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+                loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js')
+            ]).then(() => {
+                // Exporter après que les bibliothèques sont chargées
+                setTimeout(exportToPDF, 500);
+            }).catch(error => {
+                console.error('Erreur lors du chargement des bibliothèques:', error);
+                document.getElementById('pdf-loading').remove();
+                alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+            });
+        });
+        
+        // Function to load script dynamically
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+        
+        // Export to PDF function
+        function exportToPDF() {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF('p', 'mm', 'a4');
+                
+                // Add title
+                doc.setFontSize(18);
+                doc.setTextColor(51, 51, 51);
+                doc.text('Analyse de Segmentation Clients', 105, 15, { align: 'center' });
+                
+                // Add date
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Généré le: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
+                
+                // Add features used
+                doc.setFontSize(12);
+                doc.setTextColor(51, 51, 51);
+                doc.text(`Caractéristiques utilisées: ${analysisData.features_used.join(', ')}`, 14, 30);
+                doc.text(`Nombre de segments: ${analysisData.num_clusters}`, 14, 36);
+                
+                // Options de capture pour HTML2Canvas
+                const options = {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff'
+                };
+                
+                // Capture the charts
+                Promise.all([
+                    html2canvas(document.querySelector('.card:nth-child(1)'), options),
+                    html2canvas(document.querySelector('.card:nth-child(2)'), options)
+                ]).then(canvases => {
+                    try {
+                        // Add scatter chart
+                        const scatterImgData = canvases[0].toDataURL('image/png');
+                        doc.addImage(scatterImgData, 'PNG', 10, 42, 110, 65);
+                        
+                        // Add pie chart
+                        const pieImgData = canvases[1].toDataURL('image/png');
+                        doc.addImage(pieImgData, 'PNG', 10, 115, 110, 65);
+                        
+                        // Add cluster information
+                        doc.addPage();
+                        doc.setFontSize(16);
+                        doc.setTextColor(51, 51, 51);
+                        doc.text('Informations des Segments', 105, 15, { align: 'center' });
+                        
+                        let yPosition = 30;
+                        analysisData.cluster_stats.forEach(cluster => {
+                            // Obtenir la couleur du cluster
+                            const clusterColorVar = `--cluster-${cluster.cluster_id}-color`;
+                            const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(clusterColorVar);
+                            
+                            // Convertir la couleur CSS en valeurs RGB pour jsPDF
+                            const colorMatch = clusterColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+                            if (colorMatch) {
+                                const r = parseInt(colorMatch[1], 16);
+                                const g = parseInt(colorMatch[2], 16);
+                                const b = parseInt(colorMatch[3], 16);
+                                doc.setFillColor(r, g, b);
+                            } else {
+                                doc.setFillColor(67, 97, 238); // Couleur par défaut si la correspondance échoue
+                            }
+                            
+                            // Dessiner un rectangle de couleur pour indiquer le segment
+                            doc.rect(14, yPosition - 5, 5, 5, 'F');
+                            
+                            doc.setFontSize(14);
+                            doc.setTextColor(51, 51, 51);
+                            doc.text(`Segment ${cluster.cluster_id + 1}: ${cluster.customer_type || 'Segment client'}`, 24, yPosition);
+                            yPosition += 8;
+                            
+                            doc.setFontSize(11);
+                            doc.setTextColor(80, 80, 80);
+                            doc.text(`Taille: ${cluster.size} clients (${cluster.percentage}%)`, 24, yPosition);
+                            yPosition += 6;
+                            
+                            if (cluster.age_group) {
+                                doc.text(`Groupe d'âge: ${cluster.age_group}`, 24, yPosition);
+                                yPosition += 6;
+                            }
+                            
+                            if (cluster.loyalty_level) {
+                                doc.text(`Niveau de fidélité: ${cluster.loyalty_level}`, 24, yPosition);
+                                yPosition += 6;
+                            }
+                            
+                            if (cluster.purchase_frequency) {
+                                doc.text(`Fréquence d'achat: ${cluster.purchase_frequency}`, 24, yPosition);
+                                yPosition += 6;
+                            }
+                            
+                            doc.text(`Âge moyen: ${cluster.age_mean || 'N/A'} ans`, 24, yPosition);
+                            yPosition += 6;
+                            
+                            doc.text(`Points cumulés moyens: ${cluster.points_cumules_mean || 'N/A'} pts`, 24, yPosition);
+                            yPosition += 6;
+                            
+                            doc.text(`Nombre d'achats moyens: ${cluster.nombre_achats_mean || 'N/A'}`, 24, yPosition);
+                            yPosition += 15;
+                            
+                            // Ajouter une page si nécessaire
+                            if (yPosition > 260 && cluster.cluster_id < analysisData.cluster_stats.length - 1) {
+                                doc.addPage();
+                                yPosition = 20;
+                            }
+                        });
+                        
+                        // Ajouter un échantillon de clients
+                        if (analysisData.sample_clients && analysisData.sample_clients.length > 0) {
+                            // Ajouter une page pour les échantillons de clients
+                            doc.addPage();
+                            doc.setFontSize(16);
+                            doc.setTextColor(51, 51, 51);
+                            doc.text('Échantillon de Clients par Segment', 105, 15, { align: 'center' });
+                            
+                            yPosition = 25;
+                            
+                            // Grouper les clients par cluster
+                            const clientsByCluster = {};
+                            analysisData.sample_clients.forEach(client => {
+                                if (!clientsByCluster[client.cluster]) {
+                                    clientsByCluster[client.cluster] = [];
+                                }
+                                clientsByCluster[client.cluster].push(client);
+                            });
+                            
+                            // Afficher les échantillons de clients par cluster
+                            Object.keys(clientsByCluster).forEach(clusterId => {
+                                // En-tête du segment
+                                const clusterColorVar = `--cluster-${clusterId}-color`;
+                                const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(clusterColorVar);
+                                
+                                // Convertir la couleur CSS en valeurs RGB pour jsPDF
+                                const colorMatch = clusterColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+                                if (colorMatch) {
+                                    const r = parseInt(colorMatch[1], 16);
+                                    const g = parseInt(colorMatch[2], 16);
+                                    const b = parseInt(colorMatch[3], 16);
+                                    doc.setFillColor(r, g, b);
+                                } else {
+                                    doc.setFillColor(67, 97, 238);
+                                }
+                                
+                                // Dessiner un rectangle de couleur
+                                doc.rect(14, yPosition - 4, 5, 5, 'F');
+                                
+                                doc.setFontSize(13);
+                                doc.setTextColor(51, 51, 51);
+                                doc.text(`Segment ${parseInt(clusterId) + 1}`, 24, yPosition);
+                                yPosition += 6;
+                                
+                                // Afficher jusqu'à 3 clients par cluster
+                                const clients = clientsByCluster[clusterId].slice(0, 3);
+                                clients.forEach(client => {
+                                    doc.setFontSize(10);
+                                    doc.setTextColor(80, 80, 80);
+                                    doc.text(`${client.client_id} - ${client.age} ans, ${client.sexe}, ${client.statut}`, 24, yPosition);
+                                    yPosition += 5;
+                                });
+                                
+                                yPosition += 5;
+                                
+                                // Ajouter une page si nécessaire
+                                if (yPosition > 260 && Object.keys(clientsByCluster).indexOf(clusterId) < Object.keys(clientsByCluster).length - 1) {
+                                    doc.addPage();
+                                    yPosition = 20;
+                                }
+                            });
+                        }
+                        
+                        // Save the PDF
+                        doc.save('analyse_segmentation_clients.pdf');
+                    } catch (err) {
+                        console.error('Erreur lors de la génération du PDF:', err);
+                        alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+                    } finally {
+                        // Supprimer l'indicateur de chargement
+                        const loadingElement = document.getElementById('pdf-loading');
+                        if (loadingElement) {
+                            loadingElement.remove();
+                        }
+                    }
+                }).catch(err => {
+                    console.error('Erreur lors de la capture des graphiques:', err);
+                    const loadingElement = document.getElementById('pdf-loading');
+                    if (loadingElement) {
+                        loadingElement.remove();
+                    }
+                    alert('Erreur lors de la capture des graphiques. Veuillez réessayer.');
+                });
+            } catch (err) {
+                console.error('Erreur générale lors de l\'export PDF:', err);
+                const loadingElement = document.getElementById('pdf-loading');
+                if (loadingElement) {
+                    loadingElement.remove();
+                }
+                alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+            }
+        }
+    </script>
+</body>
+</html> 

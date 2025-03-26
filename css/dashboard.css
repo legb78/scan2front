@@ -1679,4 +1679,52 @@ tbody td {
         padding: 0.8rem;
         font-size: 0.9rem;
     }
+}
+
+/* Style pour le bouton de profiling client */
+.profiling-btn {
+    display: flex;
+    align-items: center;
+    padding: 8px 16px;
+    margin-right: 15px;
+    background-color: #4a6cf7;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.profiling-btn:hover {
+    background-color: #3a57d5;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.profiling-btn i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.profiling-btn span {
+    font-weight: 500;
+}
+
+/* Assurer que le header accommode le nouveau bouton */
+.header-user {
+    display: flex;
+    align-items: center;
+}
+
+@media (max-width: 768px) {
+    .profiling-btn span {
+        display: none;
+    }
+    
+    .profiling-btn {
+        padding: 8px;
+    }
+    
+    .profiling-btn i {
+        margin-right: 0;
+    }
 } 

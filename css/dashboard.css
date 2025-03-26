@@ -1238,7 +1238,7 @@ tbody td {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background-color: rgba(0, 0, 0, 0.5);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1246,88 +1246,107 @@ tbody td {
 }
 
 .modal-content {
-    background: white;
-    padding: 25px;
-    border-radius: 8px;
-    max-width: 600px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
+    background-color: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     position: relative;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    width: 90%;
+    max-width: 600px;
 }
 
 .close {
     position: absolute;
-    right: 15px;
     top: 15px;
+    right: 15px;
     font-size: 24px;
     cursor: pointer;
-    color: #666;
+    color: #aaa;
     transition: color 0.3s ease;
 }
 
 .close:hover {
-    color: #333;
+    color: var(--text-color);
 }
 
-.ticket-details {
-    margin-top: 20px;
+/* Styles pour les détails de fidélité */
+.client-info h3 {
+    color: var(--primary-color);
+    margin-bottom: 1rem;
 }
 
-.ticket-details h2 {
-    color: #333;
-    margin-bottom: 15px;
+.points-summary {
+    display: flex;
+    justify-content: space-between;
+    margin: 1.5rem 0;
+    background-color: #f8f9fa;
+    border-radius: 10px;
+    padding: 1rem;
 }
 
-.ticket-details p {
-    margin: 10px 0;
-    line-height: 1.5;
+.point-stat {
+    text-align: center;
+    flex: 1;
 }
 
-.ticket-details ul {
+.point-stat h4 {
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+    color: var(--primary-color);
+}
+
+.point-stat p {
+    font-size: 0.9rem;
+    color: var(--light-text);
+}
+
+.rewards-list, .history-list {
     list-style: none;
     padding: 0;
-    margin: 15px 0;
+    margin: 0;
 }
 
-.ticket-details li {
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
+.rewards-list li, .history-list li {
+    padding: 0.7rem 0;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.ticket-details .total {
-    margin-top: 20px;
-    font-size: 1.1em;
-    color: #4BB6C9;
+.rewards-list li:last-child, .history-list li:last-child {
+    border-bottom: none;
 }
 
-/* Style pour le bouton de détails */
-.details-btn {
-    padding: 6px 12px;
-    background: #4BB6C9;
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.3s ease;
+.text-success {
+    color: var(--primary-color);
 }
 
-.details-btn:hover {
-    background: #3a9aad;
+.text-danger {
+    color: #ff5757;
 }
 
-/* Responsive design pour le tableau */
-@media (max-width: 768px) {
-    .table-responsive {
-        overflow-x: auto;
-    }
-    
-    .modal-content {
-        width: 95%;
-        margin: 10px;
-        padding: 15px;
-    }
+.small {
+    font-size: 0.8rem;
+}
+
+.text-muted {
+    color: var(--light-text);
+}
+
+.badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-success {
+    background-color: rgba(117, 188, 141, 0.2);
+    color: var(--primary-color);
+}
+
+.badge-danger {
+    background-color: rgba(255, 87, 87, 0.1);
+    color: #ff5757;
 }
 
 /* Styles pour l'avatar utilisateur */
@@ -1430,5 +1449,234 @@ tbody td {
 @media (max-width: 1200px) {
     .insights-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Styles pour le programme de fidélité */
+.loyalty-rewards-section {
+    margin-top: 2rem;
+}
+
+.rewards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+}
+
+.reward-card {
+    background-color: #fff;
+    border-radius: 10px;
+    padding: 1.5rem;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s ease;
+    text-align: center;
+    border: 1px solid #f0f0f0;
+}
+
+.reward-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.reward-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #75BC8D, #8CCCA3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 1rem;
+    color: white;
+    font-size: 1.5rem;
+}
+
+.reward-card h3 {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+}
+
+.reward-card p {
+    color: var(--light-text);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.reward-actions {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 1rem;
+}
+
+.btn-small {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.8rem;
+}
+
+.btn-danger {
+    background-color: #ff5757;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-danger:hover {
+    background-color: #ff3a3a;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--primary-color);
+    border: 1px solid var(--primary-color);
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Style pour le tableau de points de fidélité */
+.client-loyalty-section {
+    margin-top: 2rem;
+}
+
+.loyalty-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+    background-color: white;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+}
+
+.loyalty-table th,
+.loyalty-table td {
+    padding: 1rem;
+    text-align: left;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.loyalty-table th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.loyalty-table tr:last-child td {
+    border-bottom: none;
+}
+
+.loyalty-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.points-indicator {
+    display: inline-block;
+    padding: 0.3rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.points-high {
+    background-color: rgba(117, 188, 141, 0.2);
+    color: #75BC8D;
+}
+
+.points-medium {
+    background-color: rgba(255, 193, 7, 0.2);
+    color: #ffc107;
+}
+
+.points-low {
+    background-color: rgba(255, 87, 87, 0.1);
+    color: #ff5757;
+}
+
+/* Bouton pour ajouter une récompense */
+.btn-primary {
+    background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 0.7rem 1.5rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(117, 188, 141, 0.3);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.section-header h2 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: var(--text-color);
+}
+
+/* Styles pour les alertes d'état des points */
+.point-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.status-icon {
+    display: inline-flex;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+
+.status-active {
+    background-color: #75BC8D;
+}
+
+.status-pending {
+    background-color: #ffc107;
+}
+
+.status-expired {
+    background-color: #ff5757;
+}
+
+/* Responsive design pour le programme de fidélité */
+@media (max-width: 768px) {
+    .rewards-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .loyalty-table th,
+    .loyalty-table td {
+        padding: 0.8rem;
+        font-size: 0.9rem;
     }
 } 

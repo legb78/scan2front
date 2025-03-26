@@ -69,6 +69,7 @@ function setupSmoothScrolling() {
 
 // Variables pour stocker les données et l'état actuel
 let globalData = [];
+let globalLoyaltyData = []; // Variable pour stocker les données de fidélité
 let currentPeriod = {
     products: 'semaine',
     stores: 'semaine',
@@ -141,6 +142,9 @@ function initializeAllWithRealData(data) {
     displayTopProducts(data, currentPeriod.products);
     displayTopStores(data, currentPeriod.stores);
     
+    // Charger les données de fidélité et initialiser le programme de fidélité
+    loadLoyaltyData(data);
+    
     // Ajouter les écouteurs d'événements après initialisation
     setupEventListeners(data);
 }
@@ -186,6 +190,44 @@ function setupEventListeners(data) {
             updateChart(chartId, this.value, data);
         });
     });
+
+    // Écouteurs d'événements pour les sélecteurs du programme de fidélité
+    const loyaltyPointsSelect = document.getElementById('loyalty-points-select');
+    if (loyaltyPointsSelect) {
+        loyaltyPointsSelect.addEventListener('change', function() {
+            // Mettre à jour le graphique de distribution des points selon la période sélectionnée
+            // Cette logique serait mise en place dans une implémentation complète
+            console.log(`Période de points sélectionnée: ${this.value}`);
+        });
+    }
+    
+    const loyaltyConversionSelect = document.getElementById('loyalty-conversion-select');
+    if (loyaltyConversionSelect) {
+        loyaltyConversionSelect.addEventListener('change', function() {
+            // Mettre à jour le graphique de conversion selon la période sélectionnée
+            console.log(`Période de conversion sélectionnée: ${this.value}`);
+        });
+    }
+    
+    // Recherche dans le tableau de fidélité
+    const loyaltySearch = document.getElementById('loyalty-search');
+    if (loyaltySearch) {
+        loyaltySearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const tableRows = document.querySelectorAll('.loyalty-table tbody tr');
+            
+            tableRows.forEach(row => {
+                const clientName = row.cells[0].textContent.toLowerCase();
+                const clientEmail = row.cells[1].textContent.toLowerCase();
+                
+                if (clientName.includes(searchTerm) || clientEmail.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        });
+    }
 }
 
 // Fonction pour filtrer les données par période
@@ -1808,4 +1850,787 @@ function updateCategoryPerformanceChart(data, type) {
         }
     };
     window.categoryPerformanceChart.update();
+}
+
+// Fonction pour initialiser le programme de fidélité
+function initLoyaltyProgram(data) {
+    // Initialiser les graphiques du programme de fidélité
+    initLoyaltyPointsChart(data);
+    initLoyaltyConversionChart(data);
+    
+    // Afficher le tableau des clients avec leurs points
+    displayLoyaltyTable(data);
+}
+
+// Fonction pour initialiser le graphique de distribution des points
+function initLoyaltyPointsChart(data) {
+    const ctx = document.getElementById('loyaltyPointsChart');
+    if (!ctx) return;
+    
+    // Calculer les points de fidélité pour chaque client
+    const loyaltyPoints = calculateLoyaltyPoints(data);
+    
+    // Créer des catégories de points (0-500, 501-1000, 1001-2000, 2001+)
+    const pointCategories = {
+        '0-500': 0,
+        '501-1000': 0,
+        '1001-2000': 0,
+        '2001+': 0
+    };
+    
+    // Classer les clients selon leurs points
+    Object.values(loyaltyPoints).forEach(points => {
+        if (points <= 500) {
+            pointCategories['0-500']++;
+        } else if (points <= 1000) {
+            pointCategories['501-1000']++;
+        } else if (points <= 2000) {
+            pointCategories['1001-2000']++;
+        } else {
+            pointCategories['2001+']++;
+        }
+    });
+    
+    // Créer le graphique
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(pointCategories),
+            datasets: [{
+                data: Object.values(pointCategories),
+                backgroundColor: [
+                    'rgba(255, 87, 87, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(117, 188, 141, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 87, 87, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(117, 188, 141, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Distribution des clients par points de fidélité',
+                    font: {
+                        size: 14
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Fonction pour initialiser le graphique de conversion des points
+function initLoyaltyConversionChart(data) {
+    const ctx = document.getElementById('loyaltyConversionChart');
+    if (!ctx) return;
+    
+    // Données simulées de conversion de points par mois
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const pointsEarned = [4500, 5200, 4800, 5500, 6200, 5800, 6500, 7000, 6800, 7200, 7800, 8500];
+    const pointsRedeemed = [1200, 1500, 1800, 2000, 2200, 2500, 2700, 3000, 3200, 3500, 3800, 4000];
+    
+    // Calculer le taux de conversion (points échangés / points gagnés)
+    const conversionRate = pointsRedeemed.map((redeemed, index) => {
+        if (pointsEarned[index] === 0) return 0;
+        return parseFloat((redeemed / pointsEarned[index] * 100).toFixed(1));
+    });
+    
+    // Créer le graphique
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Points gagnés',
+                    data: pointsEarned,
+                    backgroundColor: 'rgba(117, 188, 141, 0.2)',
+                    borderColor: 'rgba(117, 188, 141, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Points échangés',
+                    data: pointsRedeemed,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Taux de conversion (%)',
+                    data: conversionRate,
+                    backgroundColor: 'rgba(255, 159, 64, 0)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Points'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Taux de conversion (%)'
+                    },
+                    min: 0,
+                    max: 100,
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Fonction pour calculer les points de fidélité pour chaque client
+function calculateLoyaltyPoints(data) {
+    const clientPoints = {};
+    
+    // Parcourir les données d'achat
+    data.forEach(purchase => {
+        const clientID = purchase.Client_ID;
+        const totalAmount = purchase.Montant_Total;
+        
+        // Attribution de points: 1 point pour chaque euro dépensé
+        const pointsEarned = Math.floor(totalAmount);
+        
+        // Ajouter des points bonus pour les gros achats
+        let bonusPoints = 0;
+        if (totalAmount >= 100) {
+            bonusPoints += 50; // +50 points pour les achats de plus de 100€
+        } else if (totalAmount >= 50) {
+            bonusPoints += 20; // +20 points pour les achats de plus de 50€
+        }
+        
+        // Ajouter des points pour chaque produit acheté
+        const productPoints = purchase.Produits ? purchase.Produits.length * 5 : 0;
+        
+        // Calculer le total de points gagnés pour cet achat
+        const totalPoints = pointsEarned + bonusPoints + productPoints;
+        
+        // Mettre à jour les points du client
+        if (!clientPoints[clientID]) {
+            clientPoints[clientID] = 0;
+        }
+        clientPoints[clientID] += totalPoints;
+    });
+    
+    return clientPoints;
+}
+
+// Fonction pour afficher le tableau des clients avec leurs points de fidélité
+function displayLoyaltyTable(data) {
+    const loyaltyTableContainer = document.getElementById('loyalty-table');
+    if (!loyaltyTableContainer) return;
+    
+    // Calculer les points de fidélité pour chaque client
+    const loyaltyPoints = calculateLoyaltyPoints(data);
+    
+    // Créer un tableau des clients avec leurs points
+    const clientsData = [];
+    data.forEach(purchase => {
+        // Vérifier si le client existe déjà dans le tableau
+        const existingClient = clientsData.find(client => client.id === purchase.Client_ID);
+        
+        if (!existingClient) {
+            clientsData.push({
+                id: purchase.Client_ID,
+                nom: purchase.Nom_Client || 'Client ' + purchase.Client_ID,
+                email: purchase.Email_Client || '-',
+                points: loyaltyPoints[purchase.Client_ID] || 0,
+                dernierAchat: purchase.Jour_Achat,
+                statut: 'Actif' // Par défaut, tous les clients sont actifs
+            });
+        } else {
+            // Mettre à jour la date du dernier achat si celle-ci est plus récente
+            const currentDate = new Date(existingClient.dernierAchat);
+            const newDate = new Date(purchase.Jour_Achat);
+            if (newDate > currentDate) {
+                existingClient.dernierAchat = purchase.Jour_Achat;
+            }
+        }
+    });
+    
+    // Trier les clients par nombre de points (décroissant)
+    clientsData.sort((a, b) => b.points - a.points);
+    
+    // Créer le tableau HTML
+    let tableHTML = `
+        <table class="loyalty-table">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Email</th>
+                    <th>Points</th>
+                    <th>Dernier Achat</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    // Ajouter chaque client au tableau
+    clientsData.forEach(client => {
+        // Déterminer la classe CSS pour l'indicateur de points
+        let pointsClass = '';
+        if (client.points >= 1000) {
+            pointsClass = 'points-high';
+        } else if (client.points >= 500) {
+            pointsClass = 'points-medium';
+        } else {
+            pointsClass = 'points-low';
+        }
+        
+        // Formater la date du dernier achat
+        const lastPurchaseDate = new Date(client.dernierAchat);
+        const formattedDate = lastPurchaseDate.toLocaleDateString('fr-FR');
+        
+        // Ajouter la ligne au tableau
+        tableHTML += `
+            <tr>
+                <td>${client.nom}</td>
+                <td>${client.email}</td>
+                <td><span class="points-indicator ${pointsClass}">${client.points}</span></td>
+                <td>${formattedDate}</td>
+                <td>
+                    <div class="point-status">
+                        <span class="status-icon status-active"></span>
+                        ${client.statut}
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-small btn-outline" onclick="showClientDetails(${client.id})">
+                        <i class="fas fa-eye"></i> Détails
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+    
+    // Injecter le tableau dans le conteneur
+    loyaltyTableContainer.innerHTML = tableHTML;
+}
+
+// Fonction pour afficher les détails d'un client (à implémenter plus tard)
+function showClientDetails(clientId) {
+    console.log(`Affichage des détails du client ${clientId}`);
+    // Cette fonction serait implémentée pour afficher un modal avec les détails complets du client
+    alert(`Les détails du client ID: ${clientId} seront affichés ici.`);
+}
+
+// Fonction pour charger les données de fidélité
+function loadLoyaltyData(purchaseData) {
+    console.log('Chargement des données de fidélité...');
+    fetch('/api/loyalty')
+        .then(response => {
+            if (!response.ok) {
+                console.error('Server responded with status:', response.status);
+                throw new Error(`Erreur serveur: ${response.status} ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(loyaltyData => {
+            console.log('Données de fidélité chargées avec succès, entrées:', loyaltyData.length);
+            // Stocker les données globalement
+            globalLoyaltyData = loyaltyData;
+            // Initialiser le programme de fidélité avec les données
+            initLoyaltyProgram(purchaseData, loyaltyData);
+        })
+        .catch(error => {
+            console.error('Erreur lors du chargement des données de fidélité:', error);
+            const loyaltyContainers = document.querySelectorAll('#loyalty-table, #loyaltyPointsChart, #loyaltyConversionChart');
+            
+            loyaltyContainers.forEach(container => {
+                if (container) {
+                    container.innerHTML = `
+                        <div class="error-message">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>Impossible de charger les données de fidélité: ${error.message}</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            // Essayer d'initialiser avec des données calculées directement
+            initLoyaltyProgram(purchaseData);
+        });
+}
+
+// Fonction mise à jour pour initialiser le programme de fidélité
+function initLoyaltyProgram(purchaseData, loyaltyData) {
+    // Si des données de fidélité sont disponibles, utiliser ces données
+    if (loyaltyData) {
+        console.log('Initialisation du programme de fidélité avec données complètes');
+        // Mettre à jour les statistiques de fidélité
+        updateLoyaltyStats(loyaltyData);
+        
+        // Initialiser les graphiques de fidélité
+        initLoyaltyPointsChartWithData(loyaltyData);
+        initLoyaltyConversionChartWithData(loyaltyData);
+        
+        // Afficher le tableau des clients
+        displayLoyaltyTableWithData(loyaltyData);
+    } else {
+        console.log('Initialisation du programme de fidélité avec calcul direct');
+        // Utiliser la méthode originale qui calcule à partir des données d'achat
+        initLoyaltyPointsChart(purchaseData);
+        initLoyaltyConversionChart(purchaseData);
+        displayLoyaltyTable(purchaseData);
+    }
+}
+
+// Fonction pour mettre à jour les statistiques de fidélité
+function updateLoyaltyStats(loyaltyData) {
+    // Calculer les totaux
+    const totalPoints = loyaltyData.reduce((sum, client) => sum + client.points_cumules, 0);
+    const pointsRedeemed = loyaltyData.reduce((sum, client) => sum + client.points_utilises, 0);
+    const activeClients = loyaltyData.filter(client => client.est_actif).length;
+    const totalRewards = loyaltyData.reduce((sum, client) => sum + client.recompenses_utilisees.length, 0);
+    
+    // Mettre à jour les cartes de statistiques
+    const loyaltyStatsCards = document.querySelectorAll('#loyalty-section .stat-card');
+    
+    // Points distribués
+    if (loyaltyStatsCards[0]) {
+        loyaltyStatsCards[0].querySelector('h2').textContent = totalPoints.toLocaleString();
+    }
+    
+    // Points échangés
+    if (loyaltyStatsCards[1]) {
+        loyaltyStatsCards[1].querySelector('h2').textContent = pointsRedeemed.toLocaleString();
+    }
+    
+    // Clients fidèles
+    if (loyaltyStatsCards[2]) {
+        loyaltyStatsCards[2].querySelector('h2').textContent = activeClients.toLocaleString();
+    }
+    
+    // Nombre de récompenses
+    if (loyaltyStatsCards[3]) {
+        loyaltyStatsCards[3].querySelector('h2').textContent = totalRewards.toLocaleString();
+    }
+}
+
+// Fonction pour initialiser le graphique de distribution des points avec données complètes
+function initLoyaltyPointsChartWithData(loyaltyData) {
+    const ctx = document.getElementById('loyaltyPointsChart');
+    if (!ctx) return;
+    
+    // Créer des catégories de points (0-500, 501-1000, 1001-2000, 2001+)
+    const pointCategories = {
+        '0-500': 0,
+        '501-1000': 0,
+        '1001-2000': 0,
+        '2001+': 0
+    };
+    
+    // Classer les clients selon leurs points
+    loyaltyData.forEach(client => {
+        const points = client.points_actuels;
+        if (points <= 500) {
+            pointCategories['0-500']++;
+        } else if (points <= 1000) {
+            pointCategories['501-1000']++;
+        } else if (points <= 2000) {
+            pointCategories['1001-2000']++;
+        } else {
+            pointCategories['2001+']++;
+        }
+    });
+    
+    // Créer le graphique
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(pointCategories),
+            datasets: [{
+                data: Object.values(pointCategories),
+                backgroundColor: [
+                    'rgba(255, 87, 87, 0.7)',
+                    'rgba(255, 193, 7, 0.7)',
+                    'rgba(75, 192, 192, 0.7)',
+                    'rgba(117, 188, 141, 0.7)'
+                ],
+                borderColor: [
+                    'rgba(255, 87, 87, 1)',
+                    'rgba(255, 193, 7, 1)',
+                    'rgba(75, 192, 192, 1)',
+                    'rgba(117, 188, 141, 1)'
+                ],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        boxWidth: 12,
+                        font: {
+                            size: 11
+                        }
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Distribution des clients par points de fidélité',
+                    font: {
+                        size: 14
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Fonction pour initialiser le graphique de conversion avec données complètes
+function initLoyaltyConversionChartWithData(loyaltyData) {
+    const ctx = document.getElementById('loyaltyConversionChart');
+    if (!ctx) return;
+    
+    // Analyser l'historique des points pour créer des données mensuelles
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const currentYear = new Date().getFullYear();
+    
+    // Initialiser les compteurs mensuels
+    const monthlyPointsEarned = Array(12).fill(0);
+    const monthlyPointsRedeemed = Array(12).fill(0);
+    
+    // Parcourir tous les clients
+    loyaltyData.forEach(client => {
+        // Parcourir l'historique des points de chaque client
+        client.historique_points.forEach(entry => {
+            const entryDate = new Date(entry.date);
+            
+            // Ne considérer que les entrées de l'année en cours
+            if (entryDate.getFullYear() === currentYear) {
+                const monthIndex = entryDate.getMonth();
+                
+                if (entry.type === 'gain') {
+                    monthlyPointsEarned[monthIndex] += entry.points;
+                } else if (entry.type === 'depense') {
+                    monthlyPointsRedeemed[monthIndex] += Math.abs(entry.points);
+                }
+            }
+        });
+    });
+    
+    // Calculer le taux de conversion (points échangés / points gagnés)
+    const conversionRate = monthlyPointsRedeemed.map((redeemed, index) => {
+        if (monthlyPointsEarned[index] === 0) return 0;
+        return parseFloat((redeemed / monthlyPointsEarned[index] * 100).toFixed(1));
+    });
+    
+    // Créer le graphique
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: months,
+            datasets: [
+                {
+                    label: 'Points gagnés',
+                    data: monthlyPointsEarned,
+                    backgroundColor: 'rgba(117, 188, 141, 0.2)',
+                    borderColor: 'rgba(117, 188, 141, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Points échangés',
+                    data: monthlyPointsRedeemed,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.4,
+                    yAxisID: 'y'
+                },
+                {
+                    label: 'Taux de conversion (%)',
+                    data: conversionRate,
+                    backgroundColor: 'rgba(255, 159, 64, 0)',
+                    borderColor: 'rgba(255, 159, 64, 1)',
+                    borderWidth: 2,
+                    tension: 0.4,
+                    borderDash: [5, 5],
+                    yAxisID: 'y1'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Points'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Taux de conversion (%)'
+                    },
+                    min: 0,
+                    max: 100,
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    position: 'bottom'
+                }
+            }
+        }
+    });
+}
+
+// Fonction pour afficher le tableau des clients avec données complètes
+function displayLoyaltyTableWithData(loyaltyData) {
+    const loyaltyTableContainer = document.getElementById('loyalty-table');
+    if (!loyaltyTableContainer) return;
+    
+    // Trier les clients par nombre de points (décroissant)
+    const sortedClients = [...loyaltyData].sort((a, b) => b.points_actuels - a.points_actuels);
+    
+    // Créer le tableau HTML
+    let tableHTML = `
+        <table class="loyalty-table">
+            <thead>
+                <tr>
+                    <th>Client</th>
+                    <th>Email</th>
+                    <th>Points</th>
+                    <th>Dernier Achat</th>
+                    <th>Statut</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    // Ajouter chaque client au tableau
+    sortedClients.forEach(client => {
+        // Déterminer la classe CSS pour l'indicateur de points
+        let pointsClass = '';
+        if (client.points_actuels >= 1000) {
+            pointsClass = 'points-high';
+        } else if (client.points_actuels >= 500) {
+            pointsClass = 'points-medium';
+        } else {
+            pointsClass = 'points-low';
+        }
+        
+        // Formater la date du dernier achat
+        const lastPurchaseDate = new Date(client.dernier_achat);
+        const formattedDate = lastPurchaseDate.toLocaleDateString('fr-FR');
+        
+        // Déterminer la classe du statut
+        const statusClass = client.est_actif ? 'status-active' : 'status-expired';
+        
+        // Ajouter la ligne au tableau
+        tableHTML += `
+            <tr>
+                <td>${client.nom}</td>
+                <td>${client.email}</td>
+                <td><span class="points-indicator ${pointsClass}">${client.points_actuels}</span></td>
+                <td>${formattedDate}</td>
+                <td>
+                    <div class="point-status">
+                        <span class="status-icon ${statusClass}"></span>
+                        ${client.est_actif ? 'Actif' : 'Inactif'}
+                    </div>
+                </td>
+                <td>
+                    <button class="btn btn-small btn-outline" onclick="showClientLoyaltyDetails('${client.client_id}')">
+                        <i class="fas fa-eye"></i> Détails
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+            </tbody>
+        </table>
+    `;
+    
+    // Injecter le tableau dans le conteneur
+    loyaltyTableContainer.innerHTML = tableHTML;
+}
+
+// Fonction pour afficher les détails d'un client du programme de fidélité
+function showClientLoyaltyDetails(clientId) {
+    console.log(`Affichage des détails de fidélité du client ${clientId}`);
+    
+    // Chercher les données du client
+    const client = globalLoyaltyData.find(c => c.client_id === clientId);
+    
+    if (!client) {
+        alert(`Aucune information trouvée pour le client ID: ${clientId}`);
+        return;
+    }
+    
+    // Créer le contenu HTML du modal
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    
+    const recompensesHTML = client.recompenses_utilisees.length > 0 
+        ? client.recompenses_utilisees.map(r => `
+            <li>
+                <strong>${r.nom}</strong> - ${r.cout} points 
+                <span class="small text-muted">(utilisée le ${new Date(r.date_utilisation).toLocaleDateString('fr-FR')})</span>
+            </li>
+        `).join('')
+        : '<li>Aucune récompense utilisée</li>';
+    
+    const historiqueHTML = client.historique_points
+        .slice(0, 5) // Limiter à 5 entrées récentes
+        .map(h => {
+            const typeClass = h.type === 'gain' ? 'text-success' : 'text-danger';
+            const sign = h.type === 'gain' ? '+' : '';
+            return `
+                <li>
+                    <span class="${typeClass}">${sign}${h.points} points</span> - 
+                    ${h.description}
+                    <span class="small text-muted">(${new Date(h.date).toLocaleDateString('fr-FR')})</span>
+                </li>
+            `;
+        }).join('');
+    
+    modal.innerHTML = `
+        <div class="modal-content" style="max-width: 600px;">
+            <span class="close">&times;</span>
+            <h2>Détails du programme de fidélité</h2>
+            <div class="client-info">
+                <h3>${client.nom} (ID: ${client.client_id})</h3>
+                <p><strong>Email:</strong> ${client.email}</p>
+                <p><strong>Statut:</strong> <span class="badge ${client.est_actif ? 'badge-success' : 'badge-danger'}">${client.statut} (${client.est_actif ? 'Actif' : 'Inactif'})</span></p>
+                <p><strong>Date d'inscription:</strong> ${new Date(client.date_inscription).toLocaleDateString('fr-FR')}</p>
+                <p><strong>Dernier achat:</strong> ${new Date(client.dernier_achat).toLocaleDateString('fr-FR')}</p>
+                
+                <div class="points-summary">
+                    <div class="point-stat">
+                        <h4>${client.points_actuels}</h4>
+                        <p>Points actuels</p>
+                    </div>
+                    <div class="point-stat">
+                        <h4>${client.points_cumules}</h4>
+                        <p>Points cumulés</p>
+                    </div>
+                    <div class="point-stat">
+                        <h4>${client.points_utilises}</h4>
+                        <p>Points utilisés</p>
+                    </div>
+                </div>
+                
+                <h4>Récompenses utilisées</h4>
+                <ul class="rewards-list">
+                    ${recompensesHTML}
+                </ul>
+                
+                <h4>Historique récent</h4>
+                <ul class="history-list">
+                    ${historiqueHTML}
+                </ul>
+                
+                <button class="btn btn-primary view-all-history">Voir tout l'historique</button>
+            </div>
+        </div>
+    `;
+    
+    // Ajouter le modal au document
+    document.body.appendChild(modal);
+    
+    // Fermer le modal
+    modal.querySelector('.close').addEventListener('click', function() {
+        modal.remove();
+    });
+    
+    // Fermer le modal en cliquant en dehors
+    window.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+    
+    // Gestion du bouton "Voir tout l'historique"
+    modal.querySelector('.view-all-history').addEventListener('click', function() {
+        const historiqueComplet = client.historique_points.map(h => {
+            const typeClass = h.type === 'gain' ? 'text-success' : 'text-danger';
+            const sign = h.type === 'gain' ? '+' : '';
+            return `
+                <li>
+                    <span class="${typeClass}">${sign}${h.points} points</span> - 
+                    ${h.description}
+                    <span class="small text-muted">(${new Date(h.date).toLocaleDateString('fr-FR')})</span>
+                </li>
+            `;
+        }).join('');
+        
+        modal.querySelector('.history-list').innerHTML = historiqueComplet;
+        this.style.display = 'none';
+    });
 } 

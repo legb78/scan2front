@@ -50,6 +50,9 @@
                 <li>
                     <a href="#clients-section"><i class="fas fa-users"></i> Clients</a>
                 </li>
+                <li>
+                    <a href="#loyalty-section"><i class="fas fa-award"></i> Programme Fidélité</a>
+                </li>
             </ul>
         </div>
         <div class="sidebar-footer">
@@ -331,6 +334,173 @@
                         <div class="loading-spinner">
                             <i class="fas fa-spinner fa-spin"></i>
                             <p>Chargement des données en cours...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Programme de Fidélité Section -->
+            <div id="loyalty-section" class="section">
+                <div class="section-header">
+                    <h2>Programme de Fidélité</h2>
+                </div>
+                
+                <!-- Stats Cards pour le programme de fidélité -->
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Points distribués</h3>
+                            <h2>45,680</h2>
+                            <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 15.8%</p>
+                        </div>
+                        <div class="stat-card-icon purple">
+                            <i class="fas fa-star"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Points échangés</h3>
+                            <h2>12,450</h2>
+                            <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 5.2%</p>
+                        </div>
+                        <div class="stat-card-icon orange">
+                            <i class="fas fa-exchange-alt"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Clients fidèles</h3>
+                            <h2>856</h2>
+                            <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 10.3%</p>
+                        </div>
+                        <div class="stat-card-icon blue">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Récompenses</h3>
+                            <h2>24</h2>
+                            <p class="stat-change neutral"><i class="fas fa-minus"></i> 0%</p>
+                        </div>
+                        <div class="stat-card-icon green">
+                            <i class="fas fa-gift"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Graphiques et tableaux pour le programme de fidélité -->
+                <div class="insights-grid">
+                    <!-- Graphique de répartition des points -->
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Distribution des points</h3>
+                            <select class="chart-select" id="loyalty-points-select">
+                                <option value="month">Ce mois</option>
+                                <option value="quarter">Ce trimestre</option>
+                                <option value="year">Cette année</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="loyaltyPointsChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Statistiques de conversion -->
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Taux de conversion des points</h3>
+                            <select class="chart-select" id="loyalty-conversion-select">
+                                <option value="monthly">Mensuel</option>
+                                <option value="quarterly">Trimestriel</option>
+                                <option value="yearly">Annuel</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="loyaltyConversionChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Tableau des clients avec leurs points de fidélité -->
+                <div class="client-loyalty-section">
+                    <div class="section-header">
+                        <h2>Clients et Points de Fidélité</h2>
+                        <div class="section-actions">
+                            <button class="btn-export"><i class="fas fa-download"></i> Exporter</button>
+                            <div class="search-container">
+                                <input type="text" placeholder="Rechercher un client..." class="search-input" id="loyalty-search">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="loyalty-table" class="client-data-container">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Chargement des données en cours...</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section pour les récompenses du programme de fidélité -->
+                <div class="loyalty-rewards-section">
+                    <div class="section-header">
+                        <h2>Gestion des Récompenses</h2>
+                        <button class="btn btn-primary"><i class="fas fa-plus"></i> Ajouter une récompense</button>
+                    </div>
+                    
+                    <div class="rewards-grid">
+                        <div class="reward-card">
+                            <div class="reward-icon">
+                                <i class="fas fa-tag"></i>
+                            </div>
+                            <h3>Réduction 10%</h3>
+                            <p>Coût: 500 points</p>
+                            <p>Utilisations: 234</p>
+                            <div class="reward-actions">
+                                <button class="btn btn-small btn-outline"><i class="fas fa-edit"></i> Modifier</button>
+                                <button class="btn btn-small btn-danger"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div class="reward-card">
+                            <div class="reward-icon">
+                                <i class="fas fa-shipping-fast"></i>
+                            </div>
+                            <h3>Livraison gratuite</h3>
+                            <p>Coût: 300 points</p>
+                            <p>Utilisations: 412</p>
+                            <div class="reward-actions">
+                                <button class="btn btn-small btn-outline"><i class="fas fa-edit"></i> Modifier</button>
+                                <button class="btn btn-small btn-danger"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div class="reward-card">
+                            <div class="reward-icon">
+                                <i class="fas fa-gift"></i>
+                            </div>
+                            <h3>Produit gratuit</h3>
+                            <p>Coût: 1000 points</p>
+                            <p>Utilisations: 89</p>
+                            <div class="reward-actions">
+                                <button class="btn btn-small btn-outline"><i class="fas fa-edit"></i> Modifier</button>
+                                <button class="btn btn-small btn-danger"><i class="fas fa-trash"></i></button>
+                            </div>
+                        </div>
+                        
+                        <div class="reward-card">
+                            <div class="reward-icon">
+                                <i class="fas fa-birthday-cake"></i>
+                            </div>
+                            <h3>Cadeau anniversaire</h3>
+                            <p>Coût: 750 points</p>
+                            <p>Utilisations: 56</p>
+                            <div class="reward-actions">
+                                <button class="btn btn-small btn-outline"><i class="fas fa-edit"></i> Modifier</button>
+                                <button class="btn btn-small btn-danger"><i class="fas fa-trash"></i></button>
+                            </div>
                         </div>
                     </div>
                 </div>

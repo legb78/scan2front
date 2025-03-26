@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Scan2Save</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content">
+            <div class="logo">
+                <img src="../images/log.png" alt="Scan2Save Logo" class="logo-img">
+                Scan2Save
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="../images/log.png" alt="Scan2Save Logo" class="sidebar-logo">
+            <h2>Scan2Save</h2>
+        </div>
+        <div class="sidebar-menu">
+            <ul>
+                <li class="active">
+                    <a href="#dashboard-overview"><i class="fas fa-chart-line"></i> Tableau de bord</a>
+                </li>
+                <li>
+                    <a href="#sales-section"><i class="fas fa-shopping-cart"></i> Ventes</a>
+                </li>
+                <li>
+                    <a href="#stores-section"><i class="fas fa-store"></i> Magasins</a>
+                </li>
+                <li>
+                    <a href="#products-section"><i class="fas fa-box"></i> Produits</a>
+                </li>
+                <li>
+                    <a href="#clients-section"><i class="fas fa-users"></i> Clients</a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <a href="../index.html"><i class="fas fa-arrow-left"></i> Retour au site</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Rechercher...">
+            </div>
+            <div class="header-user">
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p>Thomas Dupont</p>
+                        <span>Administrateur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content">
+            <!-- Dashboard Overview Section -->
+            <div id="dashboard-overview" class="section">
+                <div class="dashboard-title">
+                    <h1>Tableau de bord</h1>
+                    <div class="date-filter">
+                        <i class="fas fa-calendar"></i>
+                        <input type="text" id="date-range" placeholder="Sélectionner une période">
+                    </div>
+                </div>
+
+                <!-- Stats Cards -->
+                <div class="stats-cards">
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Ventes totales</h3>
+                            <h2>€12,546</h2>
+                            <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 12.5%</p>
+                        </div>
+                        <div class="stat-card-icon blue">
+                            <i class="fas fa-shopping-cart"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Clients</h3>
+                            <h2>1,245</h2>
+                            <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 8.3%</p>
+                        </div>
+                        <div class="stat-card-icon green">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Produits scannés</h3>
+                            <h2>3,672</h2>
+                            <p class="stat-change positive"><i class="fas fa-arrow-up"></i> 15.2%</p>
+                        </div>
+                        <div class="stat-card-icon purple">
+                            <i class="fas fa-qrcode"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-info">
+                            <h3>Magasins</h3>
+                            <h2>18</h2>
+                            <p class="stat-change negative"><i class="fas fa-arrow-down"></i> 2.4%</p>
+                        </div>
+                        <div class="stat-card-icon orange">
+                            <i class="fas fa-store"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Nouvelles visualisations -->
+                <div class="insights-grid">
+                    <!-- Graphique de tendance horaire -->
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Tendance horaire des ventes</h3>
+                            <select class="chart-select" id="hourly-trend-select">
+                                <option value="today">Aujourd'hui</option>
+                                <option value="yesterday">Hier</option>
+                                <option value="lastWeek">Semaine dernière</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="hourlyTrendChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Carte thermique des ventes -->
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Distribution des ventes</h3>
+                            <select class="chart-select" id="heatmap-select">
+                                <option value="day">Par jour</option>
+                                <option value="hour">Par heure</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="salesHeatmapChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Analyse des paniers -->
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Analyse des paniers</h3>
+                            <select class="chart-select" id="basket-analysis-select">
+                                <option value="size">Taille du panier</option>
+                                <option value="composition">Composition</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="basketAnalysisChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Performance par catégorie -->
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Performance par catégorie</h3>
+                            <select class="chart-select" id="category-performance-select">
+                                <option value="revenue">Chiffre d'affaires</option>
+                                <option value="units">Unités vendues</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="categoryPerformanceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Section -->
+            <div id="sales-section" class="section">
+                <!-- Charts Section -->
+                <div class="charts-container">
+                    <div class="chart-card large">
+                        <div class="chart-header">
+                            <h3 id="sales-chart-title">Tendance des ventes</h3>
+                            <div class="chart-actions">
+                                <button>Jour</button>
+                                <button>Semaine</button>
+                                <button class="active">Mois</button>
+                            </div>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="salesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products and Stores Section -->
+            <div id="products-section" class="section">
+                <div class="section-header">
+                    <h2>Produits</h2>
+                </div>
+                
+                <!-- Top Products -->
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <div class="insight-header">
+                            <h3 id="top-products-title" data-period="cette semaine">Produits les plus vendus</h3>
+                            <div class="insight-filter">
+                                <select id="top-products-period" class="select-filter">
+                                    <option value="semaine">Cette semaine</option>
+                                    <option value="mois">Ce mois</option>
+                                    <option value="trimestre">Ce trimestre</option>
+                                    <option value="annee">Cette année</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="top-products-list" class="insight-content">
+                            <!-- Contenu sera généré par JavaScript -->
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Chargement des données...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Répartition des catégories</h3>
+                            <select class="chart-select">
+                                <option>Quantité vendue</option>
+                                <option>Chiffre d'affaires</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="productsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stores Section -->
+            <div id="stores-section" class="section">
+                <div class="section-header">
+                    <h2>Magasins</h2>
+                </div>
+                
+                <!-- Top Stores -->
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <div class="insight-header">
+                            <h3 id="top-stores-title" data-period="cette semaine">Magasins les plus performants</h3>
+                            <div class="insight-filter">
+                                <select id="top-stores-period" class="select-filter">
+                                    <option value="semaine">Cette semaine</option>
+                                    <option value="mois">Ce mois</option>
+                                    <option value="trimestre">Ce trimestre</option>
+                                    <option value="annee">Cette année</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div id="top-stores-list" class="insight-content">
+                            <!-- Contenu sera généré par JavaScript -->
+                            <div class="loading-state">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Chargement des données...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Client Data Section -->
+            <div id="clients-section" class="section">
+                <div class="section-header">
+                    <h2>Clients</h2>
+                </div>
+                
+                <div class="insights-grid">
+                    <div class="insight-card">
+                        <div class="chart-header">
+                            <h3>Démographie des clients</h3>
+                            <select class="chart-select">
+                                <option>Par âge</option>
+                                <option>Par sexe</option>
+                                <option>Par localisation</option>
+                            </select>
+                        </div>
+                        <div class="chart-body">
+                            <canvas id="demographicsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="client-data-section">
+                    <div class="section-header">
+                        <h2>Données d'achats clients</h2>
+                        <div class="section-actions">
+                            <button class="btn-export"><i class="fas fa-download"></i> Exporter</button>
+                            <div class="search-container">
+                                <input type="text" placeholder="Rechercher un client..." class="search-input">
+                                <i class="fas fa-search"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Le tableau sera injecté ici via JavaScript -->
+                    <div id="client-data-table" class="client-data-container">
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <p>Chargement des données en cours...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="dashboard-footer">
+                <p>© 2025 Scan2Save - Tous droits réservés</p>
+                <div class="footer-links">
+                    <a href="#">Confidentialité</a>
+                    <a href="#">Conditions d'utilisation</a>
+                    <a href="#">Contact</a>
+                </div>
+            </footer>
+        </div>
+    </main>
+
+    <script src="../js/dashboard.js"></script>
+    <script>
+        // Force la suppression du preloader après 2 secondes
+        setTimeout(() => {
+            const preloader = document.querySelector('.preloader');
+            if (preloader) {
+                preloader.style.opacity = '0';
+                preloader.style.display = 'none';
+            }
+        }, 2000);
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Code simple pour dessiner un graphique basique
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
+                    datasets: [{
+                        label: 'Ventes',
+                        data: [12, 19, 3, 5, 2, 3],
+                        borderColor: '#75BC8D',
+                        backgroundColor: 'rgba(117, 188, 141, 0.2)',
+                        tension: 0.4
+                    }]
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,1157 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inscription - Scan2Save</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -100% 0; }
+            100% { background-position: 100% 0; }
+        }
+        
+        @keyframes borderPulse {
+            0% { border-color: rgba(117, 188, 141, 0.4); }
+            50% { border-color: rgba(117, 188, 141, 0.8); }
+            100% { border-color: rgba(117, 188, 141, 0.4); }
+        }
+        
+        @keyframes floatIn {
+            0% { opacity: 0; transform: translateY(40px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        
+        @keyframes wave {
+            0%, 100% { transform: translateY(0); }
+            25% { transform: translateY(-5px); }
+            75% { transform: translateY(5px); }
+        }
+        
+        .signup-section {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #E5F9F7 0%, #F0F9F3 50%, #E5F9F7 100%);
+            background-size: 200% 200%;
+            animation: gradientFlow 15s ease infinite;
+            padding: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .signup-section::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(ellipse at center, rgba(117, 188, 141, 0.05) 0%, rgba(117, 188, 141, 0) 70%);
+            animation: pulse 15s infinite;
+        }
+        
+        .signup-container {
+            max-width: 600px;
+            width: 90%;
+            padding: 2.5rem;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 30px rgba(117, 188, 141, 0.15),
+                        0 0 30px rgba(117, 188, 141, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            animation: fadeIn 0.8s ease-out forwards;
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        .signup-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(117, 188, 141, 0.05), rgba(140, 204, 163, 0.05));
+            z-index: -1;
+        }
+        
+        .signup-container::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                transparent);
+            animation: shimmer 8s infinite;
+            z-index: -1;
+        }
+
+        .signup-container h2 {
+            text-align: center;
+            margin-bottom: 2rem;
+            color: var(--text-color);
+            position: relative;
+            display: inline-block;
+            width: 100%;
+            animation: fadeIn 0.6s 0.2s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .signup-container h2::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            animation: shimmer 2s infinite;
+            background-size: 200% 100%;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            animation: fadeIn 0.6s 0.4s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+            position: relative;
+            flex: 1;
+            animation: floatIn 0.5s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        /* Décalage des animations pour chaque groupe de formulaire */
+        .form-group:nth-child(1) { animation-delay: 0.3s; }
+        .form-group:nth-child(2) { animation-delay: 0.4s; }
+        .form-group:nth-child(3) { animation-delay: 0.5s; }
+        .form-group:nth-child(4) { animation-delay: 0.6s; }
+        .form-group:nth-child(5) { animation-delay: 0.7s; }
+        .form-group:nth-child(6) { animation-delay: 0.8s; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .form-group input, 
+        .form-group textarea {
+            width: 100%;
+            padding: 1rem 1rem 1rem 2.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.9);
+            font-family: var(--font-primary);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        }
+
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+            padding-top: 1.2rem;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(117, 188, 141, 0.2),
+                       0 5px 15px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+            background-color: white;
+        }
+        
+        .form-group input:focus + i,
+        .form-group textarea:focus + i {
+            transform: scale(1.2);
+            color: var(--primary-color) !important;
+        }
+
+        .form-group i {
+            position: absolute;
+            top: 2.6rem;
+            left: 1rem;
+            color: var(--light-text);
+            transition: all 0.3s ease;
+        }
+        
+        .form-group textarea + i {
+            top: 1.5rem;
+        }
+
+        .form-options {
+            display: flex;
+            align-items: flex-start;
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            animation: fadeIn 0.6s 1s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .form-check {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .form-check input {
+            margin-right: 0.5rem;
+            margin-top: 0.2rem;
+            accent-color: var(--primary-color);
+            transform-origin: center;
+            transition: all 0.2s ease;
+        }
+        
+        .form-check input:checked {
+            animation: pulse 0.3s ease;
+        }
+
+        .form-check label {
+            color: var(--light-text);
+            line-height: 1.4;
+        }
+
+        .form-check a {
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .form-check a::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 1px;
+            bottom: 0;
+            left: 0;
+            background-color: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        .form-check a:hover {
+            color: var(--accent-color);
+        }
+        
+        .form-check a:hover::after {
+            width: 100%;
+        }
+
+        .signup-btn {
+            width: 100%;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: var(--font-primary);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(117, 188, 141, 0.3);
+            animation: fadeIn 0.6s 1.2s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .signup-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transform: translateX(-100%);
+            transition: transform 0.6s;
+        }
+
+        .signup-btn:hover::before {
+            transform: translateX(100%);
+        }
+
+        .signup-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 7px 20px rgba(117, 188, 141, 0.4);
+        }
+        
+        .signup-btn:active {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 10px rgba(117, 188, 141, 0.3);
+        }
+
+        .login-prompt {
+            text-align: center;
+            margin-top: 2rem;
+            color: var(--light-text);
+            animation: fadeIn 0.6s 1.4s ease-out forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        .login-link {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .login-link::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 2px;
+            bottom: -2px;
+            left: 0;
+            background-color: var(--primary-color);
+            transition: width 0.3s ease;
+        }
+
+        .login-link:hover {
+            color: var(--accent-color);
+        }
+        
+        .login-link:hover::after {
+            width: 100%;
+        }
+
+        .back-to-home {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--text-color);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            z-index: 10;
+            opacity: 0;
+            animation: fadeIn 0.6s 0.5s ease-out forwards;
+        }
+
+        .back-to-home i {
+            transition: transform 0.3s ease;
+        }
+
+        .back-to-home:hover {
+            color: var(--primary-color);
+        }
+        
+        .back-to-home:hover i {
+            transform: translateX(-5px);
+        }
+
+        .password-strength {
+            height: 5px;
+            border-radius: 5px;
+            margin-top: 0.5rem;
+            background-color: #dfe6e9;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .password-strength-meter {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+        
+        .password-strength-meter::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, 
+                transparent, 
+                rgba(255, 255, 255, 0.2), 
+                transparent);
+            animation: shimmer 2s infinite;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .password-strength-meter.active::after {
+            opacity: 1;
+        }
+
+        .password-strength-text {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            color: var(--light-text);
+            transition: color 0.3s ease;
+        }
+        
+        /* Ajout d'effets particulaires en arrière-plan */
+        .particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: 0;
+        }
+        
+        .particle {
+            position: absolute;
+            display: block;
+            background-color: rgba(117, 188, 141, 0.2);
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            animation: particleFloat 15s infinite linear;
+        }
+        
+        @keyframes particleFloat {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-1000px) rotate(720deg);
+                opacity: 0;
+            }
+        }
+        
+        .particle:nth-child(1) {
+            left: 10%;
+            width: 12px;
+            height: 12px;
+            animation-delay: 0s;
+            animation-duration: 18s;
+        }
+        
+        .particle:nth-child(2) {
+            left: 25%;
+            width: 10px;
+            height: 10px;
+            animation-delay: 2s;
+            animation-duration: 12s;
+        }
+        
+        .particle:nth-child(3) {
+            left: 40%;
+            width: 6px;
+            height: 6px;
+            animation-delay: 4s;
+            animation-duration: 15s;
+        }
+        
+        .particle:nth-child(4) {
+            left: 60%;
+            width: 14px;
+            height: 14px;
+            animation-delay: 0s;
+            animation-duration: 20s;
+        }
+        
+        .particle:nth-child(5) {
+            left: 75%;
+            width: 8px;
+            height: 8px;
+            animation-delay: 3s;
+            animation-duration: 17s;
+        }
+        
+        .particle:nth-child(6) {
+            left: 90%;
+            width: 10px;
+            height: 10px;
+            animation-delay: 6s;
+            animation-duration: 13s;
+        }
+
+        @media (max-width: 576px) {
+            .signup-container {
+                padding: 2rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .form-options {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+
+        /* Styles du preloader */
+        .preloader {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #E5F9F7 0%, #F0F9F3 50%, #E5F9F7 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            transition: opacity 0.3s ease;
+        }
+        
+        .preloader-content {
+            text-align: center;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .preloader .logo {
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.8rem;
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .preloader .logo-img {
+            width: 60px;
+            height: 60px;
+            animation: bounce 2s ease-in-out infinite;
+        }
+        
+        .loading-bar {
+            width: 200px;
+            height: 6px;
+            background-color: rgba(117, 188, 141, 0.2);
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 0 auto;
+            position: relative;
+        }
+        
+        .loading-progress {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+            border-radius: 3px;
+            animation: loading 2s ease-in-out infinite;
+        }
+        
+        @keyframes loading {
+            0% { width: 0; }
+            50% { width: 70%; }
+            100% { width: 100%; }
+        }
+
+        /* Popup de confirmation */
+        .confirmation-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+
+        .confirmation-popup.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .popup-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
+            transform: translateY(30px);
+            transition: all 0.4s ease-in-out;
+            position: relative;
+            border: 1px solid rgba(117, 188, 141, 0.3);
+        }
+
+        .confirmation-popup.show .popup-content {
+            transform: translateY(0);
+        }
+
+        .popup-content h3 {
+            color: var(--primary-color);
+            margin-bottom: 1rem;
+            font-size: 1.6rem;
+        }
+
+        .popup-content p {
+            margin-bottom: 2rem;
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+
+        .popup-icon {
+            display: block;
+            width: 80px;
+            height: 80px;
+            line-height: 80px;
+            margin: 0 auto 1.5rem;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #75BC8D, #8CCCA3);
+            color: white;
+            font-size: 2.5rem;
+        }
+
+        .popup-button {
+            background: linear-gradient(135deg, #75BC8D, #8CCCA3);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(117, 188, 141, 0.3);
+        }
+
+        .popup-button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(117, 188, 141, 0.4);
+        }
+
+        @keyframes checkmark {
+            0% { transform: scale(0); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .checkmark {
+            animation: checkmark 0.5s ease-in-out forwards;
+        }
+    </style>
+</head>
+<body>
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content">
+            <div class="logo">
+                <img src="../images/log.png" alt="Scan2Save Logo" class="logo-img">
+                Scan2Save
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <a href="index.html" class="back-to-home">
+        <i class="fas fa-arrow-left"></i> Retour à l'accueil
+    </a>
+
+    <section class="signup-section">
+        <!-- Particules d'arrière-plan -->
+        <div class="particles">
+            <span class="particle"></span>
+            <span class="particle"></span>
+            <span class="particle"></span>
+            <span class="particle"></span>
+            <span class="particle"></span>
+            <span class="particle"></span>
+        </div>
+        
+        <div class="signup-container">
+            <h2>Créer un compte professionnel</h2>
+            <form id="signup-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstname">Prénom du représentant</label>
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="firstname" placeholder="Votre prénom" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastname">Nom du représentant</label>
+                        <i class="fas fa-user"></i>
+                        <input type="text" id="lastname" placeholder="Votre nom" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="company">Nom de l'entreprise</label>
+                    <i class="fas fa-building"></i>
+                    <input type="text" id="company" placeholder="Nom de votre entreprise" required>
+                </div>
+                <div class="form-group">
+                    <label for="phone">Numéro de téléphone</label>
+                    <i class="fas fa-phone"></i>
+                    <input type="tel" id="phone" placeholder="Votre numéro de téléphone" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email professionnel</label>
+                    <i class="fas fa-envelope"></i>
+                    <input type="email" id="email" placeholder="Votre adresse email professionnelle" required>
+                </div>
+                <div class="form-group">
+                    <label for="request">Demande d'ouverture de compte</label>
+                    <i class="fas fa-file-alt"></i>
+                    <textarea id="request" placeholder="Détaillez votre demande d'ouverture de compte" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="password">Mot de passe</label>
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="password" placeholder="Créez un mot de passe fort" required>
+                    <div class="password-strength">
+                        <div class="password-strength-meter"></div>
+                    </div>
+                    <div class="password-strength-text">Force du mot de passe</div>
+                </div>
+                <div class="form-group">
+                    <label for="confirm-password">Confirmer le mot de passe</label>
+                    <i class="fas fa-lock"></i>
+                    <input type="password" id="confirm-password" placeholder="Confirmez votre mot de passe" required>
+                </div>
+                <div class="form-options">
+                    <div class="form-check">
+                        <input type="checkbox" id="terms" required>
+                        <label for="terms">J'accepte les <a href="#">Conditions d'utilisation</a> et la <a href="#">Politique de confidentialité</a> de Scan2Save</label>
+                    </div>
+                </div>
+                <button type="submit" class="signup-btn">Soumettre ma demande</button>
+                <div class="login-prompt">
+                    Déjà un compte ? <a href="login.html" class="login-link">Se connecter</a>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <div class="confirmation-popup" id="confirmationPopup">
+        <div class="popup-content">
+            <div class="popup-icon">
+                <i class="fas fa-check checkmark"></i>
+            </div>
+            <h3>Demande reçue !</h3>
+            <p>Merci pour votre demande d'ouverture de compte professionnel. Un de nos agents vous contactera par email dans les plus brefs délais pour poursuivre la procédure.</p>
+            <button class="popup-button" id="confirmButton">Retour à l'accueil</button>
+        </div>
+    </div>
+
+    <script>
+        // Preloader
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                document.querySelector('.preloader').style.opacity = '0';
+                setTimeout(() => {
+                    document.querySelector('.preloader').style.display = 'none';
+                }, 300);
+            }, 500);
+        });
+
+        // Password strength meter
+        const passwordInput = document.getElementById('password');
+        const passwordStrengthMeter = document.querySelector('.password-strength-meter');
+        const passwordStrengthText = document.querySelector('.password-strength-text');
+        
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            let strength = 0;
+            
+            if (password.length >= 8) strength += 25;
+            if (password.match(/[a-z]+/)) strength += 25;
+            if (password.match(/[A-Z]+/)) strength += 25;
+            if (password.match(/[0-9]+/)) strength += 25;
+            
+            passwordStrengthMeter.style.width = strength + '%';
+            
+            if (strength > 0) {
+                passwordStrengthMeter.classList.add('active');
+            } else {
+                passwordStrengthMeter.classList.remove('active');
+            }
+            
+            if (strength <= 25) {
+                passwordStrengthMeter.style.backgroundColor = '#ff7675';
+                passwordStrengthText.textContent = 'Faible';
+                passwordStrengthText.style.color = '#ff7675';
+            } else if (strength <= 50) {
+                passwordStrengthMeter.style.backgroundColor = '#fdcb6e';
+                passwordStrengthText.textContent = 'Moyen';
+                passwordStrengthText.style.color = '#fdcb6e';
+            } else if (strength <= 75) {
+                passwordStrengthMeter.style.backgroundColor = '#74b9ff';
+                passwordStrengthText.textContent = 'Bon';
+                passwordStrengthText.style.color = '#74b9ff';
+            } else {
+                passwordStrengthMeter.style.backgroundColor = '#55efc4';
+                passwordStrengthText.textContent = 'Excellent';
+                passwordStrengthText.style.color = '#55efc4';
+            }
+        });
+
+        // Form submission with animations
+        document.getElementById('signup-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Animer le bouton
+            const button = this.querySelector('.signup-btn');
+            button.style.animation = 'pulse 0.5s';
+            setTimeout(() => {
+                button.style.animation = '';
+            }, 500);
+            
+            // Validate password match
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirm-password').value;
+            
+            if (password !== confirmPassword) {
+                const confirmPasswordInput = document.getElementById('confirm-password');
+                confirmPasswordInput.style.borderColor = '#ff7675';
+                confirmPasswordInput.style.animation = 'shake 0.5s';
+                
+                // Notification
+                showNotification('Les mots de passe ne correspondent pas', 'error');
+                
+                setTimeout(() => {
+                    confirmPasswordInput.style.animation = '';
+                }, 500);
+                return;
+            }
+            
+            // Validate phone number
+            const phone = document.getElementById('phone').value;
+            const phoneRegex = /^[0-9+\s()-]{8,15}$/;
+            
+            if (!phoneRegex.test(phone)) {
+                const phoneInput = document.getElementById('phone');
+                phoneInput.style.borderColor = '#ff7675';
+                phoneInput.style.animation = 'shake 0.5s';
+                
+                // Notification
+                showNotification('Veuillez entrer un numéro de téléphone valide', 'error');
+                
+                setTimeout(() => {
+                    phoneInput.style.animation = '';
+                }, 500);
+                return;
+            }
+            
+            // Add your registration logic here
+            const firstname = document.getElementById('firstname').value;
+            const lastname = document.getElementById('lastname').value;
+            const company = document.getElementById('company').value;
+            const email = document.getElementById('email').value;
+            const request = document.getElementById('request').value;
+            
+            console.log('Demande professionnelle:', { 
+                firstname, 
+                lastname, 
+                company, 
+                phone, 
+                email, 
+                request 
+            });
+            
+            // You would typically send this data to your server
+            
+            // For demo purposes, simulate success and redirect with animation
+            showNotification('Votre demande a été soumise avec succès!', 'success');
+            
+            // Animer la sortie du formulaire
+            const formContainer = document.querySelector('.signup-container');
+            setTimeout(() => {
+                formContainer.style.animation = 'fadeOut 0.8s forwards';
+                
+                setTimeout(() => {
+                    // window.location.href = 'index.html';
+                }, 800);
+            }, 2000);
+        });
+
+        // Function to show notifications
+        function showNotification(message, type) {
+            // Créer l'élément de notification
+            const notification = document.createElement('div');
+            notification.className = 'notification ' + type;
+            notification.innerHTML = `
+                <div class="notification-content">
+                    <i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            // Ajouter aux styles
+            notification.style.position = 'fixed';
+            notification.style.top = '20px';
+            notification.style.right = '20px';
+            notification.style.backgroundColor = type === 'success' ? 'rgba(117, 188, 141, 0.9)' : 'rgba(255, 118, 117, 0.9)';
+            notification.style.color = 'white';
+            notification.style.padding = '15px 20px';
+            notification.style.borderRadius = '10px';
+            notification.style.boxShadow = '0 5px 15px rgba(0, 0, 0, 0.1)';
+            notification.style.zIndex = '1000';
+            notification.style.transform = 'translateX(100%)';
+            notification.style.opacity = '0';
+            notification.style.transition = 'all 0.3s ease';
+            
+            // Ajouter au DOM
+            document.body.appendChild(notification);
+            
+            // Animer l'entrée
+            setTimeout(() => {
+                notification.style.transform = 'translateX(0)';
+                notification.style.opacity = '1';
+            }, 10);
+            
+            // Supprimer après 4 secondes
+            setTimeout(() => {
+                notification.style.transform = 'translateX(100%)';
+                notification.style.opacity = '0';
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 300);
+            }, 4000);
+        }
+
+        // Add animations to form elements
+        const formInputs = document.querySelectorAll('input, textarea');
+        formInputs.forEach(input => {
+            // Animation de focus
+            input.addEventListener('focus', () => {
+                const icon = input.parentElement.querySelector('i');
+                if (icon) icon.style.color = 'var(--primary-color)';
+                
+                // Animer le label
+                const label = input.parentElement.querySelector('label');
+                if (label) {
+                    label.style.color = 'var(--primary-color)';
+                    label.style.transform = 'translateY(-2px)';
+                }
+            });
+            
+            // Animation de blur
+            input.addEventListener('blur', () => {
+                const icon = input.parentElement.querySelector('i');
+                if (icon) icon.style.color = 'var(--light-text)';
+                
+                // Réinitialiser le label
+                const label = input.parentElement.querySelector('label');
+                if (label) {
+                    label.style.color = '';
+                    label.style.transform = '';
+                }
+            });
+            
+            // Animation lors de la saisie
+            input.addEventListener('input', () => {
+                if (input.value.length > 0) {
+                    input.style.borderColor = 'var(--primary-color)';
+                } else {
+                    input.style.borderColor = '';
+                }
+            });
+        });
+        
+        // Animation CSS supplémentaire
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    20%, 60% { transform: translateX(-5px); }
+                    40%, 80% { transform: translateX(5px); }
+                }
+                
+                @keyframes fadeOut {
+                    from { opacity: 1; transform: translateY(0); }
+                    to { opacity: 0; transform: translateY(-30px); }
+                }
+                
+                .notification-content {
+                    display: flex;
+                    align-items: center;
+                    gap: 10px;
+                }
+                
+                .notification i {
+                    font-size: 1.2rem;
+                }
+            </style>
+        `);
+        
+        // Animation des particules
+        function createParticles() {
+            const particlesContainer = document.querySelector('.particles');
+            
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('span');
+                particle.className = 'particle';
+                
+                // Position aléatoire
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                
+                // Taille aléatoire
+                const size = Math.random() * 10 + 5;
+                particle.style.width = size + 'px';
+                particle.style.height = size + 'px';
+                
+                // Animation aléatoire
+                particle.style.animationDelay = Math.random() * 5 + 's';
+                particle.style.animationDuration = Math.random() * 10 + 10 + 's';
+                
+                particlesContainer.appendChild(particle);
+            }
+        }
+        
+        // Créer des particules supplémentaires
+        createParticles();
+
+        // Remplacer la fonction handleSubmit existante par celle-ci
+        function handleSubmit(e) {
+            e.preventDefault();
+            
+            // Vérification du formulaire
+            let isValid = true;
+            
+            // Vérification du prénom
+            if (firstname.value.trim() === '') {
+                showError(firstname, 'Le prénom est requis');
+                isValid = false;
+            } else {
+                showSuccess(firstname);
+            }
+            
+            // Vérification du nom
+            if (lastname.value.trim() === '') {
+                showError(lastname, 'Le nom est requis');
+                isValid = false;
+            } else {
+                showSuccess(lastname);
+            }
+            
+            // Vérification de l'entreprise
+            if (company.value.trim() === '') {
+                showError(company, 'Le nom de l\'entreprise est requis');
+                isValid = false;
+            } else {
+                showSuccess(company);
+            }
+            
+            // Vérification du téléphone
+            const phoneRegex = /^[0-9+\s()-]{8,15}$/;
+            if (phone.value.trim() === '') {
+                showError(phone, 'Le numéro de téléphone est requis');
+                isValid = false;
+            } else if (!phoneRegex.test(phone.value.trim())) {
+                showError(phone, 'Numéro de téléphone invalide');
+                isValid = false;
+            } else {
+                showSuccess(phone);
+            }
+            
+            // Vérification de l'email
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (email.value.trim() === '') {
+                showError(email, 'L\'email est requis');
+                isValid = false;
+            } else if (!emailRegex.test(email.value.trim())) {
+                showError(email, 'Format d\'email invalide');
+                isValid = false;
+            } else {
+                showSuccess(email);
+            }
+            
+            // Vérification de la demande
+            if (request.value.trim() === '') {
+                showError(request, 'Veuillez décrire votre demande');
+                isValid = false;
+            } else {
+                showSuccess(request);
+            }
+            
+            if (isValid) {
+                console.log('Demande de compte professionnel envoyée:', {
+                    firstname: firstname.value.trim(),
+                    lastname: lastname.value.trim(),
+                    company: company.value.trim(),
+                    phone: phone.value.trim(),
+                    email: email.value.trim(),
+                    request: request.value.trim()
+                });
+                
+                // Animer le formulaire à la soumission
+                signupForm.classList.add('form-submitted');
+                
+                // Simuler une attente pour l'envoi du formulaire
+                setTimeout(() => {
+                    // Afficher la popup de confirmation
+                    document.getElementById('confirmationPopup').classList.add('show');
+                    
+                    // Redirection automatique vers la page d'accueil après 3 secondes
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 3000);
+                }, 800);
+            }
+        }
+
+        // Ajout du gestionnaire d'événement pour le bouton de confirmation
+        document.getElementById('confirmButton').addEventListener('click', function() {
+            // Rediriger vers la page principale
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+</html> 

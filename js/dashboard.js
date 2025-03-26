@@ -77,21 +77,44 @@ let currentPeriod = {
 
 // Fonction pour charger les données des achats clients
 function loadClientData() {
+    console.log('Attempting to load client data from /api/data...');
     fetch('/api/data')
         .then(response => {
             if (!response.ok) {
-                throw new Error('Erreur lors du chargement des données');
+                console.error('Server responded with status:', response.status);
+                throw new Error(`Erreur serveur: ${response.status} ${response.statusText}`);
             }
             return response.json();
         })
         .then(data => {
+            console.log('Data loaded successfully, entries:', data.length);
             globalData = data;
             initializeAllWithRealData(data);
         })
         .catch(error => {
-            console.error('Erreur:', error);
-            document.getElementById('client-data-table').innerHTML = 
-                `<div class="error-message">Impossible de charger les données: ${error.message}</div>`;
+            console.error('Error loading data:', error);
+            // Afficher l'erreur dans l'interface utilisateur
+            const errorElements = document.querySelectorAll('.insight-content, .chart-body');
+            errorElements.forEach(element => {
+                element.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Impossible de charger les données: ${error.message}</p>
+                    </div>
+                `;
+            });
+            
+            // Afficher aussi l'erreur dans le tableau de données client
+            const clientDataTable = document.getElementById('client-data-table');
+            if (clientDataTable) {
+                clientDataTable.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <p>Impossible de charger les données: ${error.message}</p>
+                        <p>Vérifiez la console pour plus de détails.</p>
+                    </div>
+                `;
+            }
         });
 }
 

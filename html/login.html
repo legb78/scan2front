@@ -357,7 +357,7 @@
     </div>
 
     <section class="login-section">
-        <a href="index.html" class="return-link">
+        <a href="/" class="return-link">
             <i class="fas fa-arrow-left"></i> Retour à l'accueil
         </a>
         
@@ -395,7 +395,7 @@
                 <button type="submit" class="login-btn">Se connecter</button>
                 
                 <div class="login-footer">
-                    Vous n'avez pas de compte? <a href="signup.html">S'inscrire</a>
+                    Vous n'avez pas de compte? <a href="/signup">S'inscrire</a>
                 </div>
             </form>
         </div>
@@ -419,8 +419,8 @@
             
             // Vérification des identifiants spécifiques
             if (email === '123@gmail.com' && password === '123456789') {
-                // Redirection vers la page dashboard.html
-                window.location.href = 'dashboard.html';
+                // Redirection vers la page dashboard
+                window.location.href = '/dashboard';
                 return;
             }
             
@@ -444,7 +444,7 @@
                     formContainer.style.animation = 'fadeOut 0.8s forwards';
                     
                     setTimeout(() => {
-                        window.location.href = 'index.html'; // Redirection normale pour les autres utilisateurs
+                        window.location.href = '/'; // Redirection vers l'accueil pour les autres utilisateurs
                     }, 800);
                 }, 1000);
             }, 1500);

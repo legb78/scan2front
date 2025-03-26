@@ -359,24 +359,5 @@
             }
         }, 2000);
     </script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Code simple pour dessiner un graphique basique
-            const ctx = document.getElementById('salesChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin'],
-                    datasets: [{
-                        label: 'Ventes',
-                        data: [12, 19, 3, 5, 2, 3],
-                        borderColor: '#75BC8D',
-                        backgroundColor: 'rgba(117, 188, 141, 0.2)',
-                        tension: 0.4
-                    }]
-                }
-            });
-        });
-    </script>
 </body>
 </html> 

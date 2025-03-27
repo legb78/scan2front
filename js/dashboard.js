@@ -39,9 +39,46 @@ document.addEventListener('DOMContentLoaded', function() {
     // Configuration de la navigation fluide du menu
     setupSmoothScrolling();
 
+    // Configurer les liens externes pour profiling et prediction
+    setupExternalLinks();
+
     // Charger les données du fichier JSON
     loadClientData();
 });
+
+// Configuration des liens externes pour profiling et prediction
+function setupExternalLinks() {
+    // Trouver les liens externes
+    const profilingLink = document.getElementById('profiling-link');
+    const predictionLink = document.getElementById('prediction-link');
+    
+    // S'assurer que ces liens fonctionnent normalement (navigation par URL)
+    if (profilingLink) {
+        profilingLink.addEventListener('click', function(e) {
+            e.stopPropagation(); // Empêcher la propagation de l'événement
+            // Laisser le navigateur gérer normalement la navigation via le href
+            return true;
+        });
+    }
+    
+    if (predictionLink) {
+        predictionLink.addEventListener('click', function(e) {
+            e.stopPropagation(); // Empêcher la propagation de l'événement
+            // Laisser le navigateur gérer normalement la navigation via le href
+            return true;
+        });
+    }
+    
+    // Configurer également le bouton du header qui mène vers la page de profiling
+    const headerProfilingBtn = document.querySelector('.profiling-btn');
+    if (headerProfilingBtn) {
+        headerProfilingBtn.addEventListener('click', function(e) {
+            e.stopPropagation(); // Empêcher la propagation de l'événement
+            // Laisser le navigateur gérer normalement la navigation via le href
+            return true;
+        });
+    }
+}
 
 // Configuration du défilement fluide pour les éléments de menu
 function setupSmoothScrolling() {
@@ -49,6 +86,11 @@ function setupSmoothScrolling() {
     const menuLinks = document.querySelectorAll('.sidebar-menu a');
     
     menuLinks.forEach(link => {
+        // Ignorer les liens externes (ceux qui ne commencent pas par #)
+        if (!link.getAttribute('href').startsWith('#')) {
+            return;
+        }
+        
         link.addEventListener('click', function(e) {
             e.preventDefault();
             

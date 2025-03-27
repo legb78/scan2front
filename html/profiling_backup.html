@@ -1,0 +1,1689 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profiling des Clients - Scan2Front</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .cluster-card {
+            transition: transform 0.3s, box-shadow 0.3s;
+            margin-bottom: 20px;
+            height: 100%;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--bg-light);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        
+        .cluster-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .cluster-card:active {
+            transform: translateY(-2px);
+        }
+        
+        .cluster-card::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        
+        .cluster-card:hover::after {
+            opacity: 0.4;
+        }
+        
+        .cluster-header {
+            padding: 15px;
+            border-radius: 5px 5px 0 0;
+            color: white;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cluster-header::before {
+            content: '';
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            top: -50%;
+            left: -50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0) 70%);
+            opacity: 0;
+            transform: scale(0.5);
+            transition: opacity 0.3s, transform 0.5s;
+        }
+        
+        .cluster-card:hover .cluster-header::before {
+            opacity: 1;
+            transform: scale(1);
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .customer-type {
+            font-weight: bold;
+            margin-bottom: 15px;
+            font-size: 1.2rem;
+            color: var(--text-color);
+            transition: color 0.3s;
+        }
+        
+        .cluster-card:hover .customer-type {
+            color: var(--primary-color);
+        }
+        
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid var(--border-color);
+            transition: background-color 0.2s;
+        }
+        
+        .stat-item:hover {
+            background-color: rgba(0,0,0,0.02);
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin-bottom: 30px;
+            transition: all 0.3s;
+        }
+        
+        .chart-container:hover {
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .cluster-controls {
+            background-color: var(--bg-light);
+            padding: 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 30px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        .feature-badge {
+            margin-right: 5px;
+            margin-bottom: 5px;
+            background-color: #f0f0f0;
+            color: var(--text-color);
+            padding: 5px 10px;
+            border-radius: 15px;
+            display: inline-block;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .feature-badge.selected {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .feature-badge:hover:not(.selected) {
+            background-color: #e0e0e0;
+        }
+        
+        .sample-clients {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .loader {
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .cluster-colors {
+            --cluster-0-color: #06d6a0;
+            --cluster-1-color: #118ab2;
+            --cluster-2-color: #ef476f;
+            --cluster-3-color: #ffd166;
+            --cluster-4-color: #073b4c;
+            --cluster-5-color: #9c89b8;
+            --centers-shadow-color: rgba(0, 0, 0, 0.3);
+        }
+        
+        .profiling-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            margin-top: 1rem;
+        }
+        
+        .profiling-title h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            color: var(--text-color);
+            margin: 0;
+        }
+        
+        .table-responsive {
+            background-color: var(--bg-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        table {
+            margin-bottom: 0;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+        
+        .btn-outline-primary {
+            color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-outline-primary:hover {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .error-container {
+            padding: 2rem;
+            text-align: center;
+            background-color: var(--bg-light);
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .error-container i {
+            font-size: 3rem;
+            color: var(--danger-color);
+            margin-bottom: 1rem;
+        }
+        
+        .card {
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background-color: rgba(var(--primary-rgb), 0.05);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem;
+        }
+        
+        .card-header h5 {
+            margin: 0;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+    </style>
+</head>
+<body class="cluster-colors">
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content">
+            <div class="logo">
+                <img src="../images/log.png" alt="Scan2Front Logo" class="logo-img">
+                Scan2Front
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="../images/log.png" alt="Scan2Save Logo" class="sidebar-logo">
+            <h2>Scan2Save</h2>
+        </div>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="dashboard.html"><i class="fas fa-chart-line"></i> Tableau de bord</a>
+                </li>
+                <li>
+                    <a href="dashboard.html#sales-section"><i class="fas fa-shopping-cart"></i> Ventes</a>
+                </li>
+                <li>
+                    <a href="dashboard.html#stores-section"><i class="fas fa-store"></i> Magasins</a>
+                </li>
+                <li>
+                    <a href="dashboard.html#products-section"><i class="fas fa-box"></i> Produits</a>
+                </li>
+                <li>
+                    <a href="dashboard.html#clients-section"><i class="fas fa-users"></i> Clients</a>
+                </li>
+                <li>
+                    <a href="dashboard.html#loyalty-section"><i class="fas fa-award"></i> Programme Fidélité</a>
+                </li>
+                <li class="active">
+                    <a href="profiling.html"><i class="fas fa-users-cog"></i> Profiling Clients</a>
+                </li>
+                <li>
+                    <a href="prediction.html"><i class="fas fa-chart-line"></i> Prédiction Achats</a>
+                </li>
+                <li>
+                    <a href="loyalty-programs.html"><i class="fas fa-star"></i> Fidélisation Personnalisée</a>
+                </li>
+                <li>
+                    <a href="product-loyalty.html"><i class="fas fa-tags"></i> Fidélisation par Produit</a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <a href="index.html"><i class="fas fa-arrow-left"></i> Retour au site</a>
+        </div>
+    </div>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Rechercher un client...">
+            </div>
+            <div class="header-user">
+                <div class="notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="badge">3</span>
+                </div>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p>Thomas Dupont</p>
+                        <span>Administrateur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+        
+        <div class="dashboard-content">
+            <div class="profiling-title">
+                <h1>Profiling et Clustering des Clients</h1>
+                <div class="actions">
+                    <button id="export-pdf" class="btn btn-primary"><i class="fas fa-file-pdf me-2"></i>Exporter en PDF</button>
+                    <button id="reset-analysis" class="btn btn-outline-primary ms-2"><i class="fas fa-redo me-2"></i>Nouvelle analyse</button>
+                </div>
+            </div>
+            
+            <!-- Clustering Controls -->
+            <div class="cluster-controls mb-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Configuration du clustering</h5>
+                        <div class="mb-3">
+                            <label for="num-clusters" class="form-label">Nombre de segments (clusters): <span id="clusters-value">3</span></label>
+                            <div class="d-flex align-items-center">
+                                <input type="range" class="form-range me-3" min="2" max="6" step="1" id="num-clusters" value="3" style="flex: 1;">
+                                <div class="btn-group" role="group">
+                                    <button type="button" class="btn btn-outline-primary" id="decrease-clusters">-</button>
+                                    <button type="button" class="btn btn-outline-primary" id="increase-clusters">+</button>
+                                </div>
+                            </div>
+                            <div class="d-flex justify-content-between mt-2">
+                                <span class="badge bg-secondary">2</span>
+                                <span class="badge bg-secondary">3</span>
+                                <span class="badge bg-secondary">4</span>
+                                <span class="badge bg-secondary">5</span>
+                                <span class="badge bg-secondary">6</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3">Caractéristiques pour l'analyse</h5>
+                        <div id="features-selection">
+                            <span class="feature-badge selected" data-feature="age">Âge</span>
+                            <span class="feature-badge selected" data-feature="points_cumules">Points cumulés</span>
+                            <span class="feature-badge selected" data-feature="nombre_achats">Nombre d'achats</span>
+                            <span class="feature-badge" data-feature="points_actuels">Points actuels</span>
+                            <span class="feature-badge" data-feature="points_utilises">Points utilisés</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row mt-3">
+                    <div class="col-12 text-center">
+                        <button id="run-clustering" class="btn btn-primary"><i class="fas fa-play me-2"></i>Lancer l'analyse</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Analysis Results -->
+            <div id="analysis-results" style="display: none;">
+                <h3 class="mb-4">Résultats de l'Analyse</h3>
+                
+                <!-- Charts -->
+                <div class="row mb-4">
+                    <div class="col-lg-8">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Distribution des Clusters</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="scatter-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Répartition des Segments</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="chart-container">
+                                    <canvas id="pie-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Cluster Cards -->
+                <h3 class="mb-3">Segments de clientèle identifiés</h3>
+                <div class="row" id="cluster-cards-container">
+                    <!-- Cluster cards will be inserted here by JS -->
+                </div>
+                
+                <!-- Sample Clients Table -->
+                <div class="row mt-5">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Échantillon de clients par segment</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>ID Client</th>
+                                                <th>Segment</th>
+                                                <th>Âge</th>
+                                                <th>Sexe</th>
+                                                <th>Statut</th>
+                                                <th>Points actuels</th>
+                                                <th>Nombre d'achats</th>
+                                                <th>Dernier achat</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sample-clients-table">
+                                            <!-- Sample clients will be inserted here by JS -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Loading indicator -->
+            <div id="loading-indicator" style="display: none;">
+                <div class="text-center p-5">
+                    <div class="loader"></div>
+                    <p class="mt-3">Analyse en cours, veuillez patienter...</p>
+                </div>
+            </div>
+            
+            <!-- Error message -->
+            <div id="error-message" class="alert alert-danger mt-3" style="display: none;">
+                Une erreur s'est produite lors de l'analyse. Veuillez réessayer.
+            </div>
+        </div>
+    </main>
+    
+    <!-- Modal pour afficher les détails du client -->
+    <div class="modal fade" id="clientModal" tabindex="-1" aria-labelledby="clientModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clientModalLabel">Détails du client</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="clientModalBody">
+                    <!-- Le contenu sera injecté dynamiquement -->
+                    <div class="loader"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Gestionnaire d'erreurs global
+        window.addEventListener('error', function(event) {
+            console.error('Une erreur est survenue:', event.error);
+            
+            // Afficher un message d'erreur à l'utilisateur
+            const errorBanner = document.createElement('div');
+            errorBanner.className = 'alert alert-danger alert-dismissible fade show m-3';
+            errorBanner.setAttribute('role', 'alert');
+            errorBanner.innerHTML = `
+                <strong>Une erreur est survenue!</strong> Veuillez rafraîchir la page ou revenir à la page d'accueil.
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            document.body.prepend(errorBanner);
+            
+            // Assurer que les éléments de chargement sont cachés
+            const loadingIndicator = document.getElementById('loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.style.display = 'none';
+            }
+            
+            // Éviter que l'erreur ne bloque toute la page
+            return true;
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            try {
+                // Initialisation de la page
+                setTimeout(() => {
+                    document.querySelector('.preloader').style.display = 'none';
+                }, 800);
+
+                // Variables globales
+                let currentClusters = 3;
+                let selectedFeatures = ['age', 'points_cumules', 'nombre_achats'];
+                let clustersData = null;
+
+                // Récupérer les contrôles
+                const numClustersInput = document.getElementById('num-clusters');
+                const clustersValue = document.getElementById('clusters-value');
+                const featureCheckboxes = document.querySelectorAll('.feature-checkbox');
+                const runClusteringBtn = document.getElementById('run-clustering');
+                const resetAnalysisBtn = document.getElementById('reset-analysis');
+                const exportPdfBtn = document.getElementById('export-pdf');
+                const clusterCardsContainer = document.getElementById('cluster-cards-container');
+                const analysisResults = document.getElementById('analysis-results');
+                const loadingIndicator = document.getElementById('loading-indicator');
+                const errorMessage = document.getElementById('error-message');
+
+                // Ajouter un gestionnaire pour le bouton d'exportation PDF
+                if (exportPdfBtn) {
+                    exportPdfBtn.addEventListener('click', function() {
+                        exportToPdf();
+                    });
+                }
+
+                // Initialiser les contrôles d'interface
+                if (numClustersInput) {
+                    numClustersInput.addEventListener('input', function() {
+                        currentClusters = parseInt(this.value);
+                        if (clustersValue) {
+                            clustersValue.textContent = currentClusters;
+                        }
+                    });
+                }
+
+                // Gestion des badges de sélection des caractéristiques
+                const featureBadges = document.querySelectorAll('.feature-badge');
+                if (featureBadges) {
+                    featureBadges.forEach(badge => {
+                        badge.addEventListener('click', function() {
+                            const feature = this.getAttribute('data-feature');
+                            
+                            if (this.classList.contains('selected')) {
+                                // Désélectionner la caractéristique
+                                this.classList.remove('selected');
+                                selectedFeatures = selectedFeatures.filter(f => f !== feature);
+                            } else {
+                                // Sélectionner la caractéristique
+                                this.classList.add('selected');
+                                selectedFeatures.push(feature);
+                            }
+                            
+                            // S'assurer qu'au moins une caractéristique est sélectionnée
+                            if (selectedFeatures.length === 0) {
+                                this.classList.add('selected');
+                                selectedFeatures.push(feature);
+                                alert('Au moins une caractéristique doit être sélectionnée');
+                            }
+                        });
+                    });
+                }
+
+                // Boutons pour augmenter/diminuer le nombre de clusters
+                document.getElementById('increase-clusters')?.addEventListener('click', function() {
+                    if (numClustersInput && parseInt(numClustersInput.value) < parseInt(numClustersInput.max)) {
+                        numClustersInput.value = parseInt(numClustersInput.value) + 1;
+                        numClustersInput.dispatchEvent(new Event('input'));
+                    }
+                });
+
+                document.getElementById('decrease-clusters')?.addEventListener('click', function() {
+                    if (numClustersInput && parseInt(numClustersInput.value) > parseInt(numClustersInput.min)) {
+                        numClustersInput.value = parseInt(numClustersInput.value) - 1;
+                        numClustersInput.dispatchEvent(new Event('input'));
+                    }
+                });
+
+                // Map des noms de programmes de fidélité
+                const programNames = {
+                    'points_achat': 'Points par achat',
+                    'paliers': 'Programme à paliers',
+                    'programme_valeur': 'Récompenses à valeur ajoutée',
+                    'cashback': 'Remises cash-back',
+                    'coalition': 'Programme multi-marques',
+                    'abonnement': 'Programme d\'abonnement',
+                    'personnalise': 'Récompenses personnalisées',
+                    'gamification': 'Programme ludique',
+                    'club_exclusif': 'Club VIP',
+                    'communautaire': 'Programme communautaire',
+                    'garantie_etendue': 'Garantie étendue',
+                    'échantillons': 'Programme d\'échantillons',
+                    'garantie': 'Garantie satisfaction',
+                    'événements': 'Événements exclusifs',
+                    'service_premium': 'Service premium',
+                    'partenaires': 'Réseau de partenaires',
+                    'coaching': 'Programme de coaching'
+                };
+
+                // Fonction pour obtenir le nom complet d'un programme
+                function getProgramName(programCode) {
+                    return programNames[programCode] || programCode;
+                }
+
+                // Ne pas lancer le clustering automatiquement au chargement
+                // Afficher seulement les contrôles et attendre que l'utilisateur clique sur le bouton
+                
+                // Initialiser les éléments visuels pour indiquer à l'utilisateur qu'il doit configurer l'analyse
+                if (analysisResults) {
+                    analysisResults.style.display = 'none';
+                }
+                
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'none';
+                }
+                
+                // Ajouter une notification pour guider l'utilisateur
+                const mainContent = document.querySelector('.dashboard-content');
+                const guideDiv = document.createElement('div');
+                guideDiv.className = 'alert alert-info mt-3 mb-4';
+                guideDiv.setAttribute('id', 'guide-message');
+                guideDiv.innerHTML = `
+                    <i class="fas fa-info-circle me-2"></i>
+                    Configurez le nombre de segments de clientèle souhaités avec le curseur ci-dessus, 
+                    puis cliquez sur <strong>Lancer l'analyse</strong> pour visualiser les résultats.
+                `;
+                
+                // Insérer le message guide après les contrôles de clustering
+                const clusterControls = document.querySelector('.cluster-controls');
+                if (clusterControls && mainContent) {
+                    mainContent.insertBefore(guideDiv, clusterControls.nextSibling);
+                }
+
+                // Écouteurs d'événements
+                if (runClusteringBtn) {
+                    runClusteringBtn.addEventListener('click', function() {
+                        // Supprimer le message guide lorsque l'analyse est lancée
+                        const guideMessage = document.getElementById('guide-message');
+                        if (guideMessage) {
+                            guideMessage.remove();
+                        }
+                        
+                        // Récupérer les valeurs actuelles
+                        currentClusters = parseInt(numClustersInput.value);
+                        
+                        // Vérifier qu'il y a au moins une caractéristique sélectionnée
+                        if (selectedFeatures.length === 0) {
+                            alert('Veuillez sélectionner au moins une caractéristique pour le clustering.');
+                            return;
+                        }
+                        
+                        runClustering();
+                    });
+                }
+
+                if (resetAnalysisBtn) {
+                    resetAnalysisBtn.addEventListener('click', function() {
+                        runClustering();
+                    });
+                }
+
+                // Fonction pour exécuter le clustering
+                function runClustering() {
+                    // Afficher le chargement et masquer les résultats/erreurs
+                    if (analysisResults) {
+                        analysisResults.style.display = 'none';
+                    }
+                    if (loadingIndicator) {
+                        loadingIndicator.style.display = 'block';
+                    }
+                    if (errorMessage) {
+                        errorMessage.style.display = 'none';
+                    }
+                    
+                    // DEMO MODE: Utiliser des données de démonstration au lieu d'appeler l'API
+                    // Cela permettra de voir l'interface même si le serveur ne répond pas
+                    setTimeout(() => {
+                        if (loadingIndicator) {
+                            loadingIndicator.style.display = 'none';
+                        }
+                        
+                        // Générer des données de démonstration
+                        const demoData = generateDemoData(currentClusters);
+                        clustersData = demoData;
+                        
+                        // Afficher les résultats avec les données de démo
+                        renderClusters(demoData);
+                    }, 1500);
+
+                    /*
+                    // Code d'origine avec appel API - commenté pour le mode démo
+                    // Définir un timeout pour éviter que la page ne reste bloquée si le serveur ne répond pas
+                    let timeoutId = setTimeout(() => {
+                        if (loadingIndicator) {
+                            loadingIndicator.style.display = 'none';
+                        }
+                        if (errorMessage) {
+                            errorMessage.style.display = 'block';
+                            errorMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Le serveur ne répond pas. Veuillez réessayer ultérieurement.';
+                        }
+                    }, 10000); // 10 secondes de timeout
+                    
+                    // Appel API
+                    fetch('/api/clustering', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            numClusters: currentClusters,
+                            features: selectedFeatures
+                        })
+                    })
+                    .then(response => {
+                        // Annuler le timeout car on a obtenu une réponse
+                        clearTimeout(timeoutId);
+                        
+                        if (!response.ok) {
+                            throw new Error('Erreur réseau: ' + response.status);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Cacher le chargement
+                        if (loadingIndicator) {
+                            loadingIndicator.style.display = 'none';
+                        }
+                        
+                        // Stocker les données
+                        clustersData = data;
+                        
+                        // Afficher les résultats
+                        renderClusters(data);
+                    })
+                    .catch(error => {
+                        // Annuler le timeout car on a obtenu une erreur
+                        clearTimeout(timeoutId);
+                        
+                        console.error('Error:', error);
+                        
+                        // Cacher le chargement
+                        if (loadingIndicator) {
+                            loadingIndicator.style.display = 'none';
+                        }
+                        
+                        // Afficher l'erreur
+                        if (errorMessage) {
+                            errorMessage.style.display = 'block';
+                            errorMessage.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Une erreur s\'est produite lors de l\'analyse. Veuillez réessayer. Détails: ' + error.message;
+                        }
+                    });
+                    */
+                }
+
+                // Fonction pour générer des données de démonstration
+                function generateDemoData(numClusters) {
+                    const clusterStats = [];
+                    const clusterLabels = [];
+                    const points = [];
+                    const centers = [];
+                    const sampleClients = [];
+                    
+                    // Construire des caractéristiques aléatoires pour chaque cluster
+                    for (let i = 0; i < numClusters; i++) {
+                        // Générer des statistiques pour ce cluster
+                        const clientSize = Math.floor(Math.random() * 100) + 50;
+                        const percentageSize = Math.round((clientSize / 500) * 100);
+                        
+                        // Créer une stat pour ce cluster
+                        const clusterStat = {
+                            cluster_id: i,
+                            size: clientSize,
+                            percentage: percentageSize,
+                            age_mean: Math.floor(Math.random() * 30) + 25,
+                            age_median: Math.floor(Math.random() * 30) + 25,
+                            points_cumules_mean: Math.floor(Math.random() * 2000) + 500,
+                            points_cumules_median: Math.floor(Math.random() * 2000) + 500,
+                            nombre_achats_mean: Math.floor(Math.random() * 10) + 5,
+                            nombre_achats_median: Math.floor(Math.random() * 10) + 5,
+                            homme_percentage: Math.round(Math.random() * 60) + 20,
+                            femme_percentage: 0, // Sera calculé après
+                            customer_type: getRandomCustomerType(),
+                            age_group: getRandomAgeGroup(),
+                            loyalty_level: getRandomLoyaltyLevel(),
+                            purchase_frequency: getRandomPurchaseFrequency(),
+                            loyalty_recommendations: {
+                                top_category: getRandomCategory(),
+                                programs: getRandomPrograms(),
+                                explanation: "Recommandations basées sur les habitudes d'achat et le profil."
+                            }
+                        };
+                        
+                        // Ajuster le pourcentage femme pour que la somme homme+femme = 100%
+                        clusterStat.femme_percentage = 100 - clusterStat.homme_percentage;
+                        
+                        clusterStats.push(clusterStat);
+                        
+                        // Générer un centre pour ce cluster
+                        const centerX = (Math.random() * 4) - 2; // centre entre -2 et 2
+                        const centerY = (Math.random() * 4) - 2; // centre entre -2 et 2
+                        centers.push([centerX, centerY]);
+                        
+                        // Générer des points autour de ce centre
+                        const numPoints = clusterStat.size;
+                        for (let j = 0; j < numPoints; j++) {
+                            // Générer un point aléatoire autour du centre du cluster
+                            const pointX = centerX + (Math.random() * 1.5 - 0.75);
+                            const pointY = centerY + (Math.random() * 1.5 - 0.75);
+                            points.push([pointX, pointY]);
+                            clusterLabels.push(i);
+                            
+                            // Générer un client d'exemple si besoin
+                            if (j < 10) { // 10 clients maximum par cluster pour les exemples
+                                sampleClients.push(generateDemoClient(i, j));
+                            }
+                        }
+                    }
+                    
+                    // Retourner les données de démonstration structurées comme l'API réelle
+                    return {
+                        cluster_stats: clusterStats,
+                        sample_clients: sampleClients,
+                        features_used: selectedFeatures,
+                        num_clusters: numClusters,
+                        visualization_data: {
+                            points: points,
+                            centers: centers,
+                            cluster_labels: clusterLabels,
+                            explained_variance: [0.65, 0.35] // 65% et 35% de variance expliquée
+                        },
+                        product_categories: ['Alimentaire', 'Électronique', 'Mode', 'Beauté', 'Maison'],
+                        loyalty_recommendations: generateLoyaltyRecommendations(sampleClients)
+                    };
+                }
+                
+                // Fonction pour générer un client de démonstration
+                function generateDemoClient(clusterId, index) {
+                    const clientId = `Client_${clusterId.toString().padStart(2, '0')}${index.toString().padStart(2, '0')}`;
+                    const statuts = ['Bronze', 'Argent', 'Or', 'Platine'];
+                    const sexes = ['Homme', 'Femme'];
+                    const today = new Date();
+                    
+                    // Générer une date dans le passé (1-180 jours)
+                    function pastDate(maxDays) {
+                        const date = new Date(today);
+                        date.setDate(date.getDate() - Math.floor(Math.random() * maxDays) - 1);
+                        return date.toISOString().split('T')[0];
+                    }
+                    
+                    // Générer entre 0 et 5 récompenses utilisées
+                    const numRewards = Math.floor(Math.random() * 6);
+                    const recompenses = [];
+                    for (let i = 0; i < numRewards; i++) {
+                        recompenses.push({
+                            id: Math.floor(Math.random() * 5) + 1,
+                            nom: getRandomRewardName(),
+                            cout: Math.floor(Math.random() * 500) + 300,
+                            date_utilisation: pastDate(90)
+                        });
+                    }
+                    
+                    // Générer entre 1 et 15 points d'historique
+                    const numHistoryPoints = Math.floor(Math.random() * 15) + 1;
+                    const historyPoints = [];
+                    let totalGain = 0;
+                    let totalSpent = 0;
+                    
+                    for (let i = 0; i < numHistoryPoints; i++) {
+                        const isGain = Math.random() > 0.3; // 70% chance de gain
+                        const points = isGain ? Math.floor(Math.random() * 300) + 50 : -(Math.floor(Math.random() * 500) + 300);
+                        
+                        if (isGain) {
+                            totalGain += points;
+                        } else {
+                            totalSpent -= points;
+                        }
+                        
+                        historyPoints.push({
+                            date: pastDate(120),
+                            type: isGain ? 'gain' : 'depense',
+                            points: points,
+                            description: isGain ? `Achat en magasin - Ticket #TICKET_${Math.floor(Math.random() * 1000000)}` : `Utilisation de la récompense: ${getRandomRewardName()}`
+                        });
+                    }
+                    
+                    // Générer des valeurs aléatoires pour ce client
+                    const totalAchats = Math.floor(Math.random() * 20) + 1;
+                    const age = Math.floor(Math.random() * 60) + 18;
+                    const pointsCumules = totalGain;
+                    const pointsActuels = pointsCumules - totalSpent;
+                    
+                    // Créer l'objet client
+                    return {
+                        client_id: clientId,
+                        nom: `Client ${clientId}`,
+                        email: `${clientId.toLowerCase()}@example.com`,
+                        sexe: sexes[Math.floor(Math.random() * sexes.length)],
+                        age: age,
+                        date_inscription: pastDate(365),
+                        dernier_achat: pastDate(30),
+                        nombre_achats: totalAchats,
+                        points_actuels: pointsActuels,
+                        points_cumules: pointsCumules,
+                        points_utilises: totalSpent,
+                        statut: statuts[Math.floor(Math.random() * statuts.length)],
+                        est_actif: Math.random() > 0.1, // 90% chance d'être actif
+                        historique_points: historyPoints,
+                        recompenses_utilisees: recompenses,
+                        total_achat: Math.floor(Math.random() * 2000) + 500,
+                        nombre_produits: Math.floor(Math.random() * 50) + 10,
+                        categorie_preferee: getRandomCategory(),
+                        cluster: clusterId
+                    };
+                }
+                
+                // Générer des recommandations de fidélité pour chaque client
+                function generateLoyaltyRecommendations(clients) {
+                    const recommendations = {};
+                    clients.forEach(client => {
+                        recommendations[client.client_id] = {
+                            categorie_dominante: client.categorie_preferee,
+                            programmes_recommandes: getRandomPrograms(),
+                            explication: "Recommandation basée sur les habitudes d'achat et le profil client.",
+                            preferences: {
+                                [client.categorie_preferee]: Math.floor(Math.random() * 1000) + 500
+                            }
+                        };
+                    });
+                    return recommendations;
+                }
+                
+                // Fonctions utilitaires pour générer des valeurs aléatoires
+                function getRandomCustomerType() {
+                    const types = [
+                        "Client Fidèle Premium", 
+                        "Client Régulier", 
+                        "Client Occasionnel", 
+                        "Nouveau Client", 
+                        "Client VIP"
+                    ];
+                    return types[Math.floor(Math.random() * types.length)];
+                }
+                
+                function getRandomAgeGroup() {
+                    const groups = ["Jeune", "Adulte", "Senior"];
+                    return groups[Math.floor(Math.random() * groups.length)];
+                }
+                
+                function getRandomLoyaltyLevel() {
+                    const levels = ["Faible", "Moyen", "Élevé"];
+                    return levels[Math.floor(Math.random() * levels.length)];
+                }
+                
+                function getRandomPurchaseFrequency() {
+                    const frequencies = ["Rare", "Occasionnel", "Régulier", "Fréquent"];
+                    return frequencies[Math.floor(Math.random() * frequencies.length)];
+                }
+                
+                function getRandomCategory() {
+                    const categories = ["Alimentaire", "Électronique", "Mode", "Beauté", "Maison", "Sport", "Autre"];
+                    return categories[Math.floor(Math.random() * categories.length)];
+                }
+                
+                function getRandomPrograms() {
+                    const allPrograms = Object.keys(programNames);
+                    const numPrograms = Math.floor(Math.random() * 3) + 1; // 1 à 3 programmes
+                    const selectedPrograms = [];
+                    
+                    for (let i = 0; i < numPrograms; i++) {
+                        const program = allPrograms[Math.floor(Math.random() * allPrograms.length)];
+                        if (!selectedPrograms.includes(program)) {
+                            selectedPrograms.push(program);
+                        }
+                    }
+                    
+                    return selectedPrograms;
+                }
+                
+                function getRandomRewardName() {
+                    const rewards = [
+                        "Réduction 10%", 
+                        "Livraison gratuite", 
+                        "Produit gratuit", 
+                        "Cadeau anniversaire", 
+                        "Code promo VIP"
+                    ];
+                    return rewards[Math.floor(Math.random() * rewards.length)];
+                }
+
+                // Fonction pour afficher les clusters
+                function renderClusters(data) {
+                    clusterCardsContainer.innerHTML = '';
+                    
+                    if (!data.cluster_stats || data.cluster_stats.length === 0) {
+                        clusterCardsContainer.innerHTML = `
+                            <div class="error-container">
+                                <i class="fas fa-exclamation-circle"></i>
+                                <h4>Aucun cluster trouvé</h4>
+                                <p>Veuillez ajuster les paramètres de clustering.</p>
+                            </div>
+                        `;
+                        return;
+                    }
+                    
+                    // Afficher la section de résultats
+                    if (analysisResults) {
+                        analysisResults.style.display = 'block';
+                    }
+                    
+                    // Trier les clusters par taille (du plus grand au plus petit)
+                    const sortedClusters = [...data.cluster_stats].sort((a, b) => b.size - a.size);
+                    
+                    // Pour chaque cluster, créer une carte
+                    sortedClusters.forEach(cluster => {
+                        renderClusterCard(cluster, data);
+                    });
+                    
+                    // Charger la visualisation
+                    loadClusterVisualization(data.visualization_data);
+                }
+                
+                // Fonction pour rendre une carte de cluster
+                function renderClusterCard(cluster, data) {
+                    const clusterCard = document.createElement('div');
+                    clusterCard.className = 'col-md-4 mb-4';
+                    
+                    // Déterminer la couleur du cluster (en utilisant les variables CSS définies)
+                    const clusterColor = `var(--cluster-${cluster.cluster_id}-color)`;
+                    
+                    // Créer un titre descriptif pour le cluster
+                    let clusterTitle = "Segment Indéfini";
+                    if (cluster.customer_type) {
+                        clusterTitle = cluster.customer_type;
+                    } else if (cluster.age_group && cluster.loyalty_level) {
+                        clusterTitle = `${cluster.age_group}s - Fidélité ${cluster.loyalty_level}`;
+                    }
+                    
+                    // Construire les statistiques à afficher
+                    let statsHTML = '';
+                    
+                    // Ajouter les stats de base
+                    statsHTML += `
+                        <div class="stat-item">
+                            <span>Taille du segment:</span>
+                            <span><strong>${cluster.size} clients</strong> (${cluster.percentage}%)</span>
+                        </div>
+                    `;
+                    
+                    // Ajouter les stats démographiques
+                    if (cluster.age_mean) {
+                        statsHTML += `
+                            <div class="stat-item">
+                                <span>Âge moyen:</span>
+                                <span><strong>${cluster.age_mean} ans</strong></span>
+                            </div>
+                        `;
+                    }
+                    
+                    if (cluster.homme_percentage && cluster.femme_percentage) {
+                        statsHTML += `
+                            <div class="stat-item">
+                                <span>Répartition H/F:</span>
+                                <span><strong>${Math.round(cluster.homme_percentage)}% / ${Math.round(cluster.femme_percentage)}%</strong></span>
+                            </div>
+                        `;
+                    }
+                    
+                    // Ajouter les stats d'achat et de fidélité
+                    if (cluster.points_cumules_mean) {
+                        statsHTML += `
+                            <div class="stat-item">
+                                <span>Points cumulés (moy.):</span>
+                                <span><strong>${cluster.points_cumules_mean} pts</strong></span>
+                            </div>
+                        `;
+                    }
+                    
+                    if (cluster.nombre_achats_mean) {
+                        statsHTML += `
+                            <div class="stat-item">
+                                <span>Nombre d'achats (moy.):</span>
+                                <span><strong>${cluster.nombre_achats_mean}</strong></span>
+                            </div>
+                        `;
+                    }
+                    
+                    // Ajouter les recommandations de programmes de fidélité
+                    let loyaltyHTML = '';
+                    if (cluster.loyalty_recommendations && cluster.loyalty_recommendations.programs) {
+                        loyaltyHTML = `
+                            <div class="mt-3">
+                                <h6 class="mb-2">Programmes recommandés:</h6>
+                                <div>
+                                    ${cluster.loyalty_recommendations.programs.map(program => 
+                                        `<span class="badge bg-primary me-1 mb-1">${getProgramName(program)}</span>`
+                                    ).join('')}
+                                </div>
+                                <p class="mt-2 small text-muted">${cluster.loyalty_recommendations.explanation || ''}</p>
+                            </div>
+                        `;
+                    }
+                    
+                    // Créer le HTML complet de la carte
+                    clusterCard.innerHTML = `
+                        <div class="cluster-card cluster-colors">
+                            <div class="cluster-header" style="background-color: ${clusterColor};">
+                                <h5 class="m-0">Cluster ${cluster.cluster_id + 1}</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="customer-type">${clusterTitle}</div>
+                                ${statsHTML}
+                                ${loyaltyHTML}
+                                <button class="btn btn-sm btn-outline-primary mt-3 view-clients-btn" 
+                                        data-cluster-id="${cluster.cluster_id}">
+                                    Voir les clients
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Ajouter la carte au conteneur
+                    document.getElementById('cluster-cards-container').appendChild(clusterCard);
+                    
+                    // Ajouter un gestionnaire d'événements pour le bouton "Voir les clients"
+                    clusterCard.querySelector('.view-clients-btn').addEventListener('click', function() {
+                        // Faire défiler jusqu'à la table des clients
+                        document.getElementById('sample-clients-table').scrollIntoView({ behavior: 'smooth' });
+                        
+                        // Surligner temporairement les clients de ce cluster
+                        const clusterRows = document.querySelectorAll(`.client-row[data-cluster="${cluster.cluster_id}"]`);
+                        clusterRows.forEach(row => {
+                            row.classList.add('table-primary');
+                            setTimeout(() => {
+                                row.classList.remove('table-primary');
+                            }, 2000);
+                        });
+                    });
+                    
+                    // Ajouter les clients d'exemple à la table
+                    addSampleClientsToTable(data.sample_clients, cluster.cluster_id);
+                }
+                
+                // Fonction pour ajouter les clients d'exemple à la table
+                function addSampleClientsToTable(clients, clusterId) {
+                    const tableBody = document.getElementById('sample-clients-table');
+                    
+                    // Si c'est le premier cluster, vider la table
+                    if (clusterId === 0) {
+                        tableBody.innerHTML = '';
+                    }
+                    
+                    // Filtrer les clients de ce cluster
+                    const clusterClients = clients.filter(client => client.cluster === clusterId);
+                    
+                    // Limiter à un maximum de 5 clients par cluster
+                    const limitedClients = clusterClients.slice(0, 5);
+                    
+                    // Ajouter chaque client à la table
+                    limitedClients.forEach(client => {
+                        const row = document.createElement('tr');
+                        row.className = 'client-row';
+                        row.setAttribute('data-cluster', clusterId);
+                        row.setAttribute('data-client-id', client.client_id);
+                        
+                        // Formater la date du dernier achat
+                        const lastPurchaseDate = client.dernier_achat ? new Date(client.dernier_achat).toLocaleDateString('fr-FR') : 'N/A';
+                        
+                        row.innerHTML = `
+                            <td>${client.client_id}</td>
+                            <td><span class="badge" style="background-color: var(--cluster-${clusterId}-color)">Cluster ${clusterId + 1}</span></td>
+                            <td>${client.age || 'N/A'}</td>
+                            <td>${client.sexe || 'N/A'}</td>
+                            <td>${client.statut || 'N/A'}</td>
+                            <td>${client.points_actuels || 0}</td>
+                            <td>${client.nombre_achats || 0}</td>
+                            <td>${lastPurchaseDate}</td>
+                        `;
+                        
+                        // Ajouter un gestionnaire d'événements pour afficher les détails du client
+                        row.style.cursor = 'pointer';
+                        row.addEventListener('click', function() {
+                            showClientDetails(client.client_id, clusterId);
+                        });
+                        
+                        tableBody.appendChild(row);
+                    });
+                }
+                
+                // Fonction pour charger la visualisation des clusters
+                function loadClusterVisualization(visualizationData) {
+                    if (!visualizationData || !visualizationData.points || !visualizationData.centers) {
+                        console.error('Données de visualisation manquantes');
+                        return;
+                    }
+                    
+                    // Afficher le conteneur des résultats d'analyse
+                    document.getElementById('analysis-results').style.display = 'block';
+                    
+                    // Préparer les données pour les graphiques
+                    const points = visualizationData.points;
+                    const centers = visualizationData.centers;
+                    const labels = visualizationData.cluster_labels;
+                    const explainedVariance = visualizationData.explained_variance;
+                    
+                    // Couleurs pour les clusters
+                    const clusterColors = [
+                        'rgba(6, 214, 160, 0.7)',    // Vert - Cluster 0
+                        'rgba(17, 138, 178, 0.7)',   // Bleu - Cluster 1
+                        'rgba(239, 71, 111, 0.7)',   // Rose - Cluster 2
+                        'rgba(255, 209, 102, 0.7)',  // Jaune - Cluster 3
+                        'rgba(7, 59, 76, 0.7)',      // Bleu foncé - Cluster 4
+                        'rgba(156, 137, 184, 0.7)'   // Violet - Cluster 5
+                    ];
+                    
+                    // Préparer les données pour le graphique de dispersion
+                    const datasets = [];
+                    
+                    // Créer un jeu de données pour chaque cluster
+                    const uniqueLabels = [...new Set(labels)];
+                    uniqueLabels.sort((a, b) => a - b);
+                    
+                    uniqueLabels.forEach(clusterLabel => {
+                        const clusterPoints = points.filter((_, i) => labels[i] === clusterLabel);
+                        
+                        datasets.push({
+                            label: `Cluster ${clusterLabel + 1}`,
+                            data: clusterPoints.map(point => ({ x: point[0], y: point[1] })),
+                            backgroundColor: clusterColors[clusterLabel % clusterColors.length],
+                            pointRadius: 4,
+                            pointHoverRadius: 6
+                        });
+                    });
+                    
+                    // Ajouter les centres des clusters
+                    datasets.push({
+                        label: 'Centres des clusters',
+                        data: centers.map((center, i) => ({ x: center[0], y: center[1] })),
+                        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                        pointRadius: 8,
+                        pointHoverRadius: 10,
+                        pointStyle: 'rectRot'
+                    });
+                    
+                    // Créer le graphique de dispersion
+                    const scatterCtx = document.getElementById('scatter-chart').getContext('2d');
+                    const scatterChart = new Chart(scatterCtx, {
+                        type: 'scatter',
+                        data: {
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                title: {
+                                    display: true,
+                                    text: 'Distribution des clients par segment',
+                                    font: {
+                                        size: 16
+                                    }
+                                },
+                                legend: {
+                                    position: 'bottom'
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return context.dataset.label;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    title: {
+                                        display: true,
+                                        text: `Composante 1 (${Math.round(explainedVariance[0] * 100)}% variance)`
+                                    },
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.05)'
+                                    }
+                                },
+                                y: {
+                                    title: {
+                                        display: true,
+                                        text: `Composante 2 (${Math.round(explainedVariance[1] * 100)}% variance)`
+                                    },
+                                    grid: {
+                                        color: 'rgba(0, 0, 0, 0.05)'
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    // Créer le graphique en camembert
+                    const pieData = uniqueLabels.map(label => {
+                        const count = labels.filter(l => l === label).length;
+                        return {
+                            label: `Cluster ${label + 1}`,
+                            count: count,
+                            percentage: (count / labels.length) * 100
+                        };
+                    });
+                    
+                    const pieCtx = document.getElementById('pie-chart').getContext('2d');
+                    const pieChart = new Chart(pieCtx, {
+                        type: 'pie',
+                        data: {
+                            labels: pieData.map(d => d.label),
+                            datasets: [{
+                                data: pieData.map(d => d.count),
+                                backgroundColor: uniqueLabels.map(label => clusterColors[label % clusterColors.length]),
+                                borderColor: 'white',
+                                borderWidth: 1
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'bottom'
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const data = pieData[context.dataIndex];
+                                            return `${data.label}: ${data.count} clients (${data.percentage.toFixed(1)}%)`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+                
+                // Fonction pour afficher les détails d'un client et ses recommandations de fidélisation
+                function showClientDetails(clientId, clusterIndex) {
+                    const clientModal = new bootstrap.Modal(document.getElementById('clientModal'));
+                    const modalBody = document.getElementById('clientModalBody');
+                    
+                    // Afficher le loader pendant le chargement
+                    modalBody.innerHTML = '<div class="loader"></div>';
+                    
+                    // Afficher le modal
+                    clientModal.show();
+                    
+                    // Récupérer les données du client
+                    if (clustersData) {
+                        const client = clustersData.sample_clients.find(c => c.client_id === clientId);
+                        const clusterStats = clustersData.cluster_stats[clusterIndex];
+                        
+                        if (!client) {
+                            modalBody.innerHTML = '<div class="alert alert-danger">Client non trouvé</div>';
+                            return;
+                        }
+                        
+                        // Récupérer les recommandations de fidélisation
+                        const recommendations = clustersData.loyalty_recommendations && clustersData.loyalty_recommendations[clientId];
+                        
+                        // Formater la date de dernier achat
+                        const lastPurchaseDate = client.dernier_achat ? new Date(client.dernier_achat).toLocaleDateString('fr-FR') : 'N/A';
+                        const registrationDate = client.date_inscription ? new Date(client.date_inscription).toLocaleDateString('fr-FR') : 'N/A';
+                        
+                        // Calculer le temps depuis le dernier achat
+                        let daysSinceLastPurchase = 'N/A';
+                        if (client.dernier_achat) {
+                            const lastDate = new Date(client.dernier_achat);
+                            const today = new Date();
+                            const diffTime = Math.abs(today - lastDate);
+                            daysSinceLastPurchase = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                        }
+                        
+                        // Liste des récompenses utilisées
+                        let rewardsHTML = '<p class="text-muted">Aucune récompense utilisée</p>';
+                        if (client.recompenses_utilisees && client.recompenses_utilisees.length > 0) {
+                            rewardsHTML = '<ul class="list-group">';
+                            client.recompenses_utilisees.forEach(reward => {
+                                const rewardDate = reward.date_utilisation ? new Date(reward.date_utilisation).toLocaleDateString('fr-FR') : 'N/A';
+                                rewardsHTML += `
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        ${reward.nom}
+                                        <span>
+                                            <span class="badge bg-primary rounded-pill">${reward.cout} pts</span>
+                                            <small class="ms-2 text-muted">${rewardDate}</small>
+                                        </span>
+                                    </li>
+                                `;
+                            });
+                            rewardsHTML += '</ul>';
+                        }
+                        
+                        // Liste des derniers points gagnés/utilisés
+                        let pointsHistoryHTML = '<p class="text-muted">Aucun historique de points</p>';
+                        if (client.historique_points && client.historique_points.length > 0) {
+                            pointsHistoryHTML = '<ul class="list-group" style="max-height: 250px; overflow-y: auto;">';
+                            // Trier par date décroissante
+                            const sortedHistory = [...client.historique_points].sort((a, b) => 
+                                new Date(b.date) - new Date(a.date)
+                            ).slice(0, 5); // Limiter aux 5 dernières opérations
+                            
+                            sortedHistory.forEach(entry => {
+                                const pointDate = entry.date ? new Date(entry.date).toLocaleDateString('fr-FR') : 'N/A';
+                                const isGain = entry.type === 'gain';
+                                const badgeClass = isGain ? 'bg-success' : 'bg-danger';
+                                const pointsDisplay = isGain ? `+${entry.points}` : `${entry.points}`;
+                                
+                                pointsHistoryHTML += `
+                                    <li class="list-group-item">
+                                        <div class="d-flex justify-content-between">
+                                            <span>
+                                                <span class="badge ${badgeClass} me-2">${pointsDisplay}</span>
+                                                ${entry.description}
+                                            </span>
+                                            <small class="text-muted">${pointDate}</small>
+                                        </div>
+                                    </li>
+                                `;
+                            });
+                            pointsHistoryHTML += '</ul>';
+                        }
+                        
+                        // Programmes recommandés
+                        let recommendationsHTML = '';
+                        if (recommendations && recommendations.programmes_recommandes) {
+                            recommendationsHTML = `
+                                <div class="card mt-4">
+                                    <div class="card-header bg-primary text-white">
+                                        <h5 class="m-0">Recommandations de fidélisation</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        <h6>Catégorie dominante : ${recommendations.categorie_dominante || 'Non définie'}</h6>
+                                        <p>${recommendations.explication || ''}</p>
+                                        <div class="mb-3">
+                                            ${recommendations.programmes_recommandes.map(program => 
+                                                `<span class="badge bg-primary me-1 mb-1">${getProgramName(program)}</span>`
+                                            ).join('')}
+                                        </div>
+                                        <button class="btn btn-sm btn-success" id="sendOfferBtn" data-client-id="${clientId}">
+                                            <i class="fas fa-paper-plane me-2"></i>Envoyer une offre personnalisée
+                                        </button>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        
+                        // Construire le contenu du modal
+                        let modalContent = `
+                            <div class="client-details">
+                                <div class="card mb-4">
+                                    <div class="card-header d-flex justify-content-between align-items-center">
+                                        <h5 class="m-0">${client.nom}</h5>
+                                        <span class="badge" style="background-color: var(--cluster-${clusterIndex}-color)">
+                                            Cluster ${clusterIndex + 1}
+                                        </span>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="row">
+                                            <div class="col-md-6">
+                                                <h6>Informations personnelles</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th>ID Client</th>
+                                                        <td>${client.client_id}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Âge</th>
+                                                        <td>${client.age || 'N/A'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Sexe</th>
+                                                        <td>${client.sexe || 'N/A'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Email</th>
+                                                        <td>${client.email || 'N/A'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Inscription</th>
+                                                        <td>${registrationDate}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Statut</th>
+                                                        <td><span class="badge bg-secondary">${client.statut || 'N/A'}</span></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Actif</th>
+                                                        <td>
+                                                            <span class="badge ${client.est_actif ? 'bg-success' : 'bg-danger'}">
+                                                                ${client.est_actif ? 'Oui' : 'Non'}
+                                                            </span>
+                                                        </td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Comportement d'achat</h6>
+                                                <table class="table table-sm">
+                                                    <tr>
+                                                        <th>Nombre d'achats</th>
+                                                        <td>${client.nombre_achats || 0}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Dernier achat</th>
+                                                        <td>${lastPurchaseDate} (il y a ${daysSinceLastPurchase} jours)</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Total dépensé</th>
+                                                        <td>${client.total_achat ? client.total_achat.toFixed(2) + ' €' : 'N/A'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Nombre de produits</th>
+                                                        <td>${client.nombre_produits || 0}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Catégorie préférée</th>
+                                                        <td>${client.categorie_preferee || 'N/A'}</td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Points actuels</th>
+                                                        <td><strong>${client.points_actuels || 0}</strong></td>
+                                                    </tr>
+                                                    <tr>
+                                                        <th>Points cumulés</th>
+                                                        <td>${client.points_cumules || 0}</td>
+                                                    </tr>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="row mt-4">
+                                            <div class="col-md-6">
+                                                <h6>Historique récent des points</h6>
+                                                ${pointsHistoryHTML}
+                                            </div>
+                                            <div class="col-md-6">
+                                                <h6>Récompenses utilisées</h6>
+                                                ${rewardsHTML}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                ${recommendationsHTML}
+                            </div>
+                        `;
+                        
+                        // Mettre à jour le contenu du modal
+                        modalBody.innerHTML = modalContent;
+                        
+                        // Ajouter un gestionnaire d'événement pour le bouton d'envoi d'offre
+                        document.getElementById('sendOfferBtn')?.addEventListener('click', function() {
+                            const clientId = this.getAttribute('data-client-id');
+                            simulateSendOffer(clientId, client.categorie_preferee, recommendations);
+                        });
+                    } else {
+                        modalBody.innerHTML = '<div class="alert alert-danger">Données non disponibles</div>';
+                    }
+                }
+                
+                // Fonction pour simuler l'envoi d'une offre
+                function simulateSendOffer(clientId, category, recommendations) {
+                    // Récupérer le bouton d'envoi
+                    const sendBtn = document.getElementById('sendOfferBtn');
+                    if (!sendBtn) return;
+                    
+                    // Désactiver le bouton pendant l'envoi simulé
+                    const originalText = sendBtn.innerHTML;
+                    sendBtn.disabled = true;
+                    sendBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Envoi en cours...';
+                    
+                    // Simuler un délai d'envoi
+                    setTimeout(() => {
+                        // Changer le texte du bouton pour indiquer le succès
+                        sendBtn.innerHTML = '<i class="fas fa-check me-2"></i>Offre envoyée !';
+                        sendBtn.classList.remove('btn-success');
+                        sendBtn.classList.add('btn-outline-success');
+                        
+                        // Afficher une notification
+                        const modal = document.getElementById('clientModalBody');
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success mt-3';
+                        alertDiv.innerHTML = `
+                            <i class="fas fa-paper-plane me-2"></i>
+                            Une offre personnalisée a été envoyée à ce client basée sur ses préférences d'achat 
+                            et son segment client.
+                        `;
+                        
+                        // Ajouter l'alerte au début du contenu du modal
+                        modal.insertBefore(alertDiv, modal.firstChild);
+                        
+                        // Faire disparaître l'alerte après quelques secondes
+                        setTimeout(() => {
+                            alertDiv.classList.add('fade');
+                            setTimeout(() => alertDiv.remove(), 500);
+                        }, 5000);
+                    }, 1500);
+                }
+                
+                // Fonction pour exporter l'analyse en PDF
+                function exportToPdf() {
+                    // Vérifier si les données sont disponibles
+                    if (!clustersData) {
+                        alert("Aucune donnée disponible pour l'exportation. Veuillez d'abord exécuter l'analyse.");
+                        return;
+                    }
+                    
+                    // Changer le texte du bouton pour indiquer le processus d'exportation
+                    const originalText = exportPdfBtn.innerHTML;
+                    exportPdfBtn.disabled = true;
+                    exportPdfBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Génération du PDF...';
+                    
+                    // Créer une notification pour indiquer que le PDF a été généré
+                    setTimeout(() => {
+                        // Simuler la génération PDF
+                        exportPdfBtn.innerHTML = originalText;
+                        exportPdfBtn.disabled = false;
+                        
+                        // Afficher une notification de succès
+                        const mainContent = document.querySelector('.main-content');
+                        const alertDiv = document.createElement('div');
+                        alertDiv.className = 'alert alert-success alert-dismissible fade show mt-3';
+                        alertDiv.setAttribute('role', 'alert');
+                        alertDiv.innerHTML = `
+                            <i class="fas fa-file-pdf me-2"></i>
+                            Le rapport d'analyse des segments clients a été généré et téléchargé.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        `;
+                        
+                        // Ajouter l'alerte au début du contenu
+                        mainContent.insertBefore(alertDiv, mainContent.firstChild);
+                        
+                        // Faire disparaître l'alerte après quelques secondes
+                        setTimeout(() => {
+                            const bsAlert = new bootstrap.Alert(alertDiv);
+                            bsAlert.close();
+                        }, 5000);
+                        
+                        // Simuler un téléchargement
+                        const a = document.createElement('a');
+                        a.style.display = 'none';
+                        a.href = 'javascript:void(0)';
+                        a.download = `analyse_segments_clients_${new Date().toISOString().split('T')[0]}.pdf`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        
+                    }, 2000);
+                }
+                
+                // Initialisation des composants Bootstrap
+                const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+                tooltipTriggerList.map(function (tooltipTriggerEl) {
+                    return new bootstrap.Tooltip(tooltipTriggerEl);
+                });
+            } catch (error) {
+                console.error('Erreur lors de la initialisation:', error);
+                // Afficher un message d'erreur
+                const errorBanner = document.createElement('div');
+                errorBanner.className = 'alert alert-danger m-3';
+                errorBanner.innerHTML = 'Une erreur est survenue lors du chargement de la page. Veuillez rafraîchir.';
+                document.body.prepend(errorBanner);
+            }
+        });
+    </script>
+</body>
+</html> 

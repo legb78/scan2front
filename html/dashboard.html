@@ -99,11 +99,49 @@
             <div id="dashboard-overview" class="section">
                 <div class="dashboard-title">
                     <h1>Tableau de bord</h1>
-                    <div class="date-filter">
+                    <div class="date-filter" title="Cliquez pour filtrer les données par période">
                         <i class="fas fa-calendar"></i>
-                        <input type="text" id="date-range" placeholder="Sélectionner une période">
+                        <input type="text" id="date-range" class="date-selector" placeholder="Sélectionner une période">
+                        <small class="date-help">Cliquez pour filtrer par date</small>
                     </div>
                 </div>
+
+                <style>
+                    .date-filter {
+                        position: relative;
+                        display: flex;
+                        align-items: center;
+                        padding: 8px 12px;
+                        background-color: white;
+                        border-radius: 8px;
+                        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+                        cursor: pointer;
+                        transition: all 0.2s ease;
+                    }
+                    .date-filter:hover {
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+                    }
+                    .date-filter i {
+                        color: var(--primary-color);
+                        margin-right: 8px;
+                    }
+                    .date-selector {
+                        border: none;
+                        outline: none;
+                        cursor: pointer;
+                        font-size: 14px;
+                        width: 200px;
+                    }
+                    .date-help {
+                        position: absolute;
+                        bottom: -20px;
+                        left: 0;
+                        font-size: 12px;
+                        color: var(--text-secondary);
+                        opacity: 0.8;
+                        white-space: nowrap;
+                    }
+                </style>
 
                 <!-- Stats Cards -->
                 <div class="stats-cards">

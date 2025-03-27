@@ -1192,20 +1192,30 @@
                 const doc = new jsPDF('p', 'mm', 'a4');
                 
                 // Add title
-                doc.setFontSize(18);
-                doc.setTextColor(51, 51, 51);
-                doc.text('Analyse de Segmentation Clients', 105, 15, { align: 'center' });
+                doc.setFontSize(22);
+                doc.setTextColor(41, 41, 41);
+                doc.text('Analyse de Segmentation Clients', 105, 20, { align: 'center' });
                 
-                // Add date
-                doc.setFontSize(10);
-                doc.setTextColor(100, 100, 100);
-                doc.text(`Généré le: ${new Date().toLocaleDateString()}`, 105, 22, { align: 'center' });
-                
-                // Add features used
+                // Add date and subtitle
                 doc.setFontSize(12);
+                doc.setTextColor(100, 100, 100);
+                doc.text(`Rapport généré le: ${new Date().toLocaleDateString('fr-FR')}`, 105, 30, { align: 'center' });
+                
+                // Add parameters section
+                doc.setFontSize(14);
                 doc.setTextColor(51, 51, 51);
-                doc.text(`Caractéristiques utilisées: ${analysisData.features_used.join(', ')}`, 14, 30);
-                doc.text(`Nombre de segments: ${analysisData.num_clusters}`, 14, 36);
+                doc.text(`Caractéristiques utilisées: ${analysisData.features_used.join(', ')}`, 20, 40);
+                doc.text(`Nombre de segments: ${analysisData.num_clusters}`, 20, 48);
+                doc.text(`Algorithme: K-Means Clustering`, 20, 56);
+                
+                // Add a line separator
+                doc.setDrawColor(200, 200, 200);
+                doc.line(20, 60, 190, 60);
+                
+                // Capture the charts - la référence directe aux éléments au lieu des sélecteurs CSS
+                const scatterChart = document.getElementById('scatter-chart');
+                const pieChart = document.getElementById('pie-chart');
+                const clusterCards = document.getElementById('cluster-cards-container');
                 
                 // Options de capture pour HTML2Canvas
                 const options = {
@@ -1215,164 +1225,347 @@
                     backgroundColor: '#ffffff'
                 };
                 
-                // Capture the charts
-                Promise.all([
-                    html2canvas(document.querySelector('.card:nth-child(1)'), options),
-                    html2canvas(document.querySelector('.card:nth-child(2)'), options)
-                ]).then(canvases => {
+                // Première étape : capturer et placer le graphique scatter
+                html2canvas(scatterChart, options).then(scatterCanvas => {
                     try {
                         // Add scatter chart
-                        const scatterImgData = canvases[0].toDataURL('image/png');
-                        doc.addImage(scatterImgData, 'PNG', 10, 42, 110, 65);
-                        
-                        // Add pie chart
-                        const pieImgData = canvases[1].toDataURL('image/png');
-                        doc.addImage(pieImgData, 'PNG', 10, 115, 110, 65);
-                        
-                        // Add cluster information
-                        doc.addPage();
                         doc.setFontSize(16);
                         doc.setTextColor(51, 51, 51);
-                        doc.text('Informations des Segments', 105, 15, { align: 'center' });
+                        doc.text('Visualisation des clusters', 105, 70, { align: 'center' });
                         
-                        let yPosition = 30;
-                        analysisData.cluster_stats.forEach(cluster => {
-                            // Obtenir la couleur du cluster
-                            const clusterColorVar = `--cluster-${cluster.cluster_id}-color`;
-                            const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(clusterColorVar);
-                            
-                            // Convertir la couleur CSS en valeurs RGB pour jsPDF
-                            const colorMatch = clusterColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-                            if (colorMatch) {
-                                const r = parseInt(colorMatch[1], 16);
-                                const g = parseInt(colorMatch[2], 16);
-                                const b = parseInt(colorMatch[3], 16);
-                                doc.setFillColor(r, g, b);
-                            } else {
-                                doc.setFillColor(67, 97, 238); // Couleur par défaut si la correspondance échoue
-                            }
-                            
-                            // Dessiner un rectangle de couleur pour indiquer le segment
-                            doc.rect(14, yPosition - 5, 5, 5, 'F');
-                            
-                            doc.setFontSize(14);
-                            doc.setTextColor(51, 51, 51);
-                            doc.text(`Segment ${cluster.cluster_id + 1}: ${cluster.customer_type || 'Segment client'}`, 24, yPosition);
-                            yPosition += 8;
-                            
-                            doc.setFontSize(11);
-                            doc.setTextColor(80, 80, 80);
-                            doc.text(`Taille: ${cluster.size} clients (${cluster.percentage}%)`, 24, yPosition);
-                            yPosition += 6;
-                            
-                            if (cluster.age_group) {
-                                doc.text(`Groupe d'âge: ${cluster.age_group}`, 24, yPosition);
-                                yPosition += 6;
-                            }
-                            
-                            if (cluster.loyalty_level) {
-                                doc.text(`Niveau de fidélité: ${cluster.loyalty_level}`, 24, yPosition);
-                                yPosition += 6;
-                            }
-                            
-                            if (cluster.purchase_frequency) {
-                                doc.text(`Fréquence d'achat: ${cluster.purchase_frequency}`, 24, yPosition);
-                                yPosition += 6;
-                            }
-                            
-                            doc.text(`Âge moyen: ${cluster.age_mean || 'N/A'} ans`, 24, yPosition);
-                            yPosition += 6;
-                            
-                            doc.text(`Points cumulés moyens: ${cluster.points_cumules_mean || 'N/A'} pts`, 24, yPosition);
-                            yPosition += 6;
-                            
-                            doc.text(`Nombre d'achats moyens: ${cluster.nombre_achats_mean || 'N/A'}`, 24, yPosition);
-                            yPosition += 15;
-                            
-                            // Ajouter une page si nécessaire
-                            if (yPosition > 260 && cluster.cluster_id < analysisData.cluster_stats.length - 1) {
+                        const scatterImgData = scatterCanvas.toDataURL('image/png');
+                        doc.addImage(scatterImgData, 'PNG', 20, 75, 170, 90);
+                        
+                        // Deuxième étape : capturer et placer le graphique pie
+                        html2canvas(pieChart, options).then(pieCanvas => {
+                            try {
+                                // Add pie chart
+                                doc.setFontSize(16);
+                                doc.text('Répartition des clients par segment', 105, 175, { align: 'center' });
+                                
+                                const pieImgData = pieCanvas.toDataURL('image/png');
+                                doc.addImage(pieImgData, 'PNG', 60, 180, 90, 70);
+                                
+                                // Continue with the rest of the PDF content
+                                // Add cluster information page
                                 doc.addPage();
-                                yPosition = 20;
-                            }
-                        });
-                        
-                        // Ajouter un échantillon de clients
-                        if (analysisData.sample_clients && analysisData.sample_clients.length > 0) {
-                            // Ajouter une page pour les échantillons de clients
-                            doc.addPage();
-                            doc.setFontSize(16);
-                            doc.setTextColor(51, 51, 51);
-                            doc.text('Échantillon de Clients par Segment', 105, 15, { align: 'center' });
-                            
-                            yPosition = 25;
-                            
-                            // Grouper les clients par cluster
-                            const clientsByCluster = {};
-                            analysisData.sample_clients.forEach(client => {
-                                if (!clientsByCluster[client.cluster]) {
-                                    clientsByCluster[client.cluster] = [];
-                                }
-                                clientsByCluster[client.cluster].push(client);
-                            });
-                            
-                            // Afficher les échantillons de clients par cluster
-                            Object.keys(clientsByCluster).forEach(clusterId => {
-                                // En-tête du segment
-                                const clusterColorVar = `--cluster-${clusterId}-color`;
-                                const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(clusterColorVar);
+                                doc.setFontSize(18);
+                                doc.setTextColor(41, 41, 41);
+                                doc.text('Détails des Segments Client', 105, 20, { align: 'center' });
                                 
-                                // Convertir la couleur CSS en valeurs RGB pour jsPDF
-                                const colorMatch = clusterColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
-                                if (colorMatch) {
-                                    const r = parseInt(colorMatch[1], 16);
-                                    const g = parseInt(colorMatch[2], 16);
-                                    const b = parseInt(colorMatch[3], 16);
+                                let yPosition = 35;
+                                analysisData.cluster_stats.forEach((cluster, index) => {
+                                    // Obtenir la couleur du cluster
+                                    const clusterColorVar = `--cluster-${cluster.cluster_id}-color`;
+                                    const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(clusterColorVar);
+                                    
+                                    // Convertir la couleur CSS en valeurs RGB pour jsPDF
+                                    const colorMatch = clusterColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+                                    let r = 67, g = 97, b = 238; // Couleur par défaut
+                                    if (colorMatch) {
+                                        r = parseInt(colorMatch[1], 16);
+                                        g = parseInt(colorMatch[2], 16);
+                                        b = parseInt(colorMatch[3], 16);
+                                    }
                                     doc.setFillColor(r, g, b);
-                                } else {
-                                    doc.setFillColor(67, 97, 238);
-                                }
-                                
-                                // Dessiner un rectangle de couleur
-                                doc.rect(14, yPosition - 4, 5, 5, 'F');
-                                
-                                doc.setFontSize(13);
-                                doc.setTextColor(51, 51, 51);
-                                doc.text(`Segment ${parseInt(clusterId) + 1}`, 24, yPosition);
-                                yPosition += 6;
-                                
-                                // Afficher jusqu'à 3 clients par cluster
-                                const clients = clientsByCluster[clusterId].slice(0, 3);
-                                clients.forEach(client => {
-                                    doc.setFontSize(10);
+                                    
+                                    // Dessiner un rectangle de couleur pour indiquer le segment
+                                    doc.roundedRect(14, yPosition - 5, 5, 5, 1, 1, 'F');
+                                    
+                                    // Nom du segment
+                                    doc.setFontSize(14);
+                                    doc.setTextColor(r, g, b);
+                                    const segmentName = cluster.customer_type || `Segment ${cluster.cluster_id + 1}`;
+                                    doc.text(`${segmentName}`, 24, yPosition);
+                                    yPosition += 8;
+                                    
+                                    // Information du segment en 2 colonnes
+                                    doc.setFontSize(11);
                                     doc.setTextColor(80, 80, 80);
-                                    doc.text(`${client.client_id} - ${client.age} ans, ${client.sexe}, ${client.statut}`, 24, yPosition);
+                                    
+                                    // Colonne 1
+                                    doc.text(`Taille: ${cluster.size} clients (${cluster.percentage}%)`, 24, yPosition);
+                                    yPosition += 6;
+                                    
+                                    if (cluster.age_group) {
+                                        doc.text(`Groupe d'âge: ${cluster.age_group}`, 24, yPosition);
+                                        yPosition += 6;
+                                    }
+                                    
+                                    if (cluster.loyalty_level) {
+                                        doc.text(`Niveau de fidélité: ${cluster.loyalty_level}`, 24, yPosition);
+                                        yPosition += 6;
+                                    }
+                                    
+                                    // Colonne 2
+                                    const col2X = 120;
+                                    let col2Y = yPosition - (cluster.loyalty_level ? 12 : 6);
+                                    
+                                    if (cluster.purchase_frequency) {
+                                        doc.text(`Fréquence d'achat: ${cluster.purchase_frequency}`, col2X, col2Y);
+                                        col2Y += 6;
+                                    }
+                                    
+                                    doc.text(`Âge moyen: ${cluster.age_mean || 'N/A'} ans`, col2X, col2Y);
+                                    col2Y += 6;
+                                    
+                                    doc.text(`Points cumulés moyens: ${cluster.points_cumules_mean || 'N/A'} pts`, col2X, col2Y);
+                                    
+                                    // Reposition for next cluster
+                                    yPosition += 6;
+                                    
+                                    // Ajout des recommandations
+                                    doc.setFontSize(10);
+                                    doc.setTextColor(100, 100, 100);
+                                    doc.text('Recommandations marketing:', 24, yPosition);
                                     yPosition += 5;
+                                    
+                                    // Générer des recommandations en fonction du type de client
+                                    let recommendations = [];
+                                    if (cluster.customer_type?.includes('Fidèle') || cluster.loyalty_level?.includes('élevé')) {
+                                        recommendations.push('• Programme VIP avec avantages exclusifs');
+                                        recommendations.push('• Communications personnalisées basées sur l\'historique d\'achat');
+                                    } else if (cluster.customer_type?.includes('Occasionnel')) {
+                                        recommendations.push('• Offres promotionnelles pour augmenter la fréquence d\'achat');
+                                        recommendations.push('• Programme de fidélité avec récompenses à court terme');
+                                    } else if (cluster.age_group?.includes('Jeune')) {
+                                        recommendations.push('• Marketing sur les réseaux sociaux');
+                                        recommendations.push('• Promotions sur les produits tendance');
+                                    } else if (cluster.age_group?.includes('Senior')) {
+                                        recommendations.push('• Communication par email et courrier traditionnel');
+                                        recommendations.push('• Promotions sur les produits de confort et bien-être');
+                                    } else {
+                                        recommendations.push('• Offres promotionnelles ciblées');
+                                        recommendations.push('• Campagnes de reciblage');
+                                    }
+                                    
+                                    recommendations.forEach(rec => {
+                                        doc.text(rec, 30, yPosition);
+                                        yPosition += 5;
+                                    });
+                                    
+                                    // Line separator between clusters
+                                    yPosition += 5;
+                                    doc.setDrawColor(230, 230, 230);
+                                    doc.line(20, yPosition - 2, 190, yPosition - 2);
+                                    yPosition += 7;
+                                    
+                                    // Ajouter une page si nécessaire
+                                    if (yPosition > 260 && index < analysisData.cluster_stats.length - 1) {
+                                        doc.addPage();
+                                        yPosition = 30;
+                                    }
                                 });
                                 
-                                yPosition += 5;
-                                
-                                // Ajouter une page si nécessaire
-                                if (yPosition > 260 && Object.keys(clientsByCluster).indexOf(clusterId) < Object.keys(clientsByCluster).length - 1) {
+                                // Ajouter un échantillon de clients
+                                if (analysisData.sample_clients && analysisData.sample_clients.length > 0) {
+                                    // Ajouter une page pour les échantillons de clients
                                     doc.addPage();
-                                    yPosition = 20;
+                                    doc.setFontSize(18);
+                                    doc.setTextColor(41, 41, 41);
+                                    doc.text('Échantillon de Clients par Segment', 105, 20, { align: 'center' });
+                                    
+                                    // Grouper les clients par cluster
+                                    const clientsByCluster = {};
+                                    analysisData.sample_clients.forEach(client => {
+                                        if (!clientsByCluster[client.cluster]) {
+                                            clientsByCluster[client.cluster] = [];
+                                        }
+                                        clientsByCluster[client.cluster].push(client);
+                                    });
+                                    
+                                    yPosition = 35;
+                                    
+                                    // Dessiner un en-tête de tableau
+                                    doc.setFillColor(240, 240, 240);
+                                    doc.rect(20, yPosition - 5, 170, 10, 'F');
+                                    
+                                    doc.setFontSize(11);
+                                    doc.setTextColor(50, 50, 50);
+                                    doc.text('Segment', 25, yPosition);
+                                    doc.text('Client ID', 60, yPosition);
+                                    doc.text('Age', 95, yPosition);
+                                    doc.text('Genre', 115, yPosition);
+                                    doc.text('Statut', 145, yPosition);
+                                    
+                                    yPosition += 8;
+                                    
+                                    // Afficher les échantillons de clients
+                                    let rowColor = false;
+                                    Object.keys(clientsByCluster).forEach(clusterId => {
+                                        const cluster = analysisData.cluster_stats.find(c => c.cluster_id.toString() === clusterId);
+                                        const clusterName = cluster?.customer_type || `Segment ${parseInt(clusterId) + 1}`;
+                                        
+                                        // Obtenir la couleur du cluster
+                                        const clusterColorVar = `--cluster-${clusterId}-color`;
+                                        const clusterColor = getComputedStyle(document.documentElement).getPropertyValue(clusterColorVar);
+                                        
+                                        // Afficher jusqu'à 4 clients par cluster
+                                        const clients = clientsByCluster[clusterId].slice(0, 4);
+                                        clients.forEach((client, idx) => {
+                                            // Fond de ligne alterné
+                                            if (rowColor) {
+                                                doc.setFillColor(245, 245, 245);
+                                                doc.rect(20, yPosition - 5, 170, 7, 'F');
+                                            }
+                                            rowColor = !rowColor;
+                                            
+                                            doc.setFontSize(10);
+                                            doc.setTextColor(80, 80, 80);
+                                            
+                                            // N'affiche le nom du segment que pour le premier client du segment
+                                            if (idx === 0) {
+                                                // Convertir la couleur CSS en valeurs RGB
+                                                const colorMatch = clusterColor.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+                                                if (colorMatch) {
+                                                    const r = parseInt(colorMatch[1], 16);
+                                                    const g = parseInt(colorMatch[2], 16);
+                                                    const b = parseInt(colorMatch[3], 16);
+                                                    doc.setTextColor(r, g, b);
+                                                }
+                                                doc.text(clusterName, 25, yPosition);
+                                                doc.setTextColor(80, 80, 80);
+                                            }
+                                            
+                                            doc.text(`${client.client_id}`, 60, yPosition);
+                                            doc.text(`${client.age} ans`, 95, yPosition);
+                                            doc.text(`${client.sexe}`, 115, yPosition);
+                                            doc.text(`${client.statut}`, 145, yPosition);
+                                            
+                                            yPosition += 7;
+                                        });
+                                        
+                                        // Espace après chaque segment
+                                        yPosition += 2;
+                                        
+                                        // Ajouter une page si nécessaire
+                                        if (yPosition > 260 && Object.keys(clientsByCluster).indexOf(clusterId) < Object.keys(clientsByCluster).length - 1) {
+                                            doc.addPage();
+                                            yPosition = 30;
+                                            rowColor = false;
+                                            
+                                            // Redessiner l'en-tête de tableau sur la nouvelle page
+                                            doc.setFillColor(240, 240, 240);
+                                            doc.rect(20, yPosition - 5, 170, 10, 'F');
+                                            
+                                            doc.setFontSize(11);
+                                            doc.setTextColor(50, 50, 50);
+                                            doc.text('Segment', 25, yPosition);
+                                            doc.text('Client ID', 60, yPosition);
+                                            doc.text('Age', 95, yPosition);
+                                            doc.text('Genre', 115, yPosition);
+                                            doc.text('Statut', 145, yPosition);
+                                            
+                                            yPosition += 8;
+                                        }
+                                    });
                                 }
-                            });
-                        }
-                        
-                        // Save the PDF
-                        doc.save('analyse_segmentation_clients.pdf');
+                                
+                                // Ajouter une page de résumé et recommandations
+                                doc.addPage();
+                                doc.setFontSize(18);
+                                doc.setTextColor(41, 41, 41);
+                                doc.text('Résumé et Stratégies Marketing', 105, 20, { align: 'center' });
+                                
+                                // Résumé des résultats
+                                doc.setFontSize(14);
+                                doc.setTextColor(51, 51, 51);
+                                doc.text('Résumé des résultats', 20, 35);
+                                
+                                doc.setFontSize(11);
+                                doc.setTextColor(80, 80, 80);
+                                let summaryText = [
+                                    `• Nombre total de clients analysés: ${analysisData.total_clients || 'N/A'}`,
+                                    `• Nombre de segments identifiés: ${analysisData.num_clusters}`,
+                                    `• Caractéristiques les plus discriminantes: ${analysisData.features_used.slice(0, 2).join(', ')}`,
+                                    `• Segment le plus large: ${getLargestSegment()}`
+                                ];
+                                
+                                yPosition = 45;
+                                summaryText.forEach(text => {
+                                    doc.text(text, 25, yPosition);
+                                    yPosition += 7;
+                                });
+                                
+                                // Stratégies marketing globales
+                                yPosition += 5;
+                                doc.setFontSize(14);
+                                doc.setTextColor(51, 51, 51);
+                                doc.text('Stratégies marketing recommandées', 20, yPosition);
+                                yPosition += 10;
+                                
+                                // Recommandations générales
+                                doc.setFontSize(11);
+                                doc.setTextColor(80, 80, 80);
+                                
+                                const generalRecommendations = [
+                                    "• Personnaliser les communications et offres selon le segment d'appartenance du client",
+                                    "• Développer des campagnes spécifiques pour chaque segment identifié",
+                                    "• Revoir la politique de fidélisation pour les segments à faible engagement",
+                                    "• Mettre en place des mécanismes de suivi pour mesurer l'efficacité des actions par segment",
+                                    "• Réanalyser la segmentation tous les trimestres pour détecter les évolutions"
+                                ];
+                                
+                                generalRecommendations.forEach(rec => {
+                                    doc.text(rec, 25, yPosition);
+                                    yPosition += 7;
+                                });
+                                
+                                // Capture des cartes de segments si disponible
+                                if (clusterCards) {
+                                    html2canvas(clusterCards, options).then(cardsCanvas => {
+                                        try {
+                                            yPosition += 5;
+                                            doc.setFontSize(14);
+                                            doc.setTextColor(51, 51, 51);
+                                            doc.text('Aperçu des segments', 105, yPosition, { align: 'center' });
+                                            yPosition += 5;
+                                            
+                                            const cardsImgData = cardsCanvas.toDataURL('image/png');
+                                            const scaleFactor = Math.min(170 / cardsCanvas.width, (270 - yPosition) / cardsCanvas.height);
+                                            const imgWidth = cardsCanvas.width * scaleFactor;
+                                            const imgHeight = cardsCanvas.height * scaleFactor;
+                                            
+                                            doc.addImage(cardsImgData, 'PNG', (210 - imgWidth) / 2, yPosition, imgWidth, imgHeight);
+                                            
+                                            finalizePDF(doc);
+                                        } catch (err) {
+                                            console.error('Erreur lors de l\'ajout de l\'aperçu des segments:', err);
+                                            finalizePDF(doc);
+                                        }
+                                    }).catch(err => {
+                                        console.error('Erreur lors de la capture des cartes de segment:', err);
+                                        finalizePDF(doc);
+                                    });
+                                } else {
+                                    finalizePDF(doc);
+                                }
+                            } catch (err) {
+                                console.error('Erreur lors du traitement du pie chart:', err);
+                                const loadingElement = document.getElementById('pdf-loading');
+                                if (loadingElement) {
+                                    loadingElement.remove();
+                                }
+                                alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
+                            }
+                        }).catch(err => {
+                            console.error('Erreur lors de la capture du pie chart:', err);
+                            const loadingElement = document.getElementById('pdf-loading');
+                            if (loadingElement) {
+                                loadingElement.remove();
+                            }
+                            alert('Erreur lors de la capture des graphiques. Veuillez réessayer.');
+                        });
                     } catch (err) {
-                        console.error('Erreur lors de la génération du PDF:', err);
-                        alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
-                    } finally {
-                        // Supprimer l'indicateur de chargement
+                        console.error('Erreur lors du traitement du scatter chart:', err);
                         const loadingElement = document.getElementById('pdf-loading');
                         if (loadingElement) {
                             loadingElement.remove();
                         }
+                        alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
                     }
                 }).catch(err => {
-                    console.error('Erreur lors de la capture des graphiques:', err);
+                    console.error('Erreur lors de la capture du scatter chart:', err);
                     const loadingElement = document.getElementById('pdf-loading');
                     if (loadingElement) {
                         loadingElement.remove();
@@ -1387,6 +1580,40 @@
                 }
                 alert('Erreur lors de la génération du PDF. Veuillez réessayer.');
             }
+        }
+        
+        // Function to finalize the PDF (add footer, save file)
+        function finalizePDF(doc) {
+            // Add footer with page numbers
+            const pageCount = doc.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(10);
+                doc.setTextColor(150, 150, 150);
+                doc.text(`Rapport de segmentation clients - Page ${i} / ${pageCount}`, 105, 285, { align: 'center' });
+            }
+            
+            // Save the PDF
+            doc.save(`segmentation_clients_${new Date().toISOString().split('T')[0]}.pdf`);
+            
+            // Remove loading indicator
+            const loadingElement = document.getElementById('pdf-loading');
+            if (loadingElement) {
+                loadingElement.remove();
+            }
+        }
+        
+        // Fonction utilitaire pour obtenir le segment le plus large
+        function getLargestSegment() {
+            if (!analysisData || !analysisData.cluster_stats || analysisData.cluster_stats.length === 0) {
+                return 'N/A';
+            }
+            
+            const largestCluster = analysisData.cluster_stats.reduce((largest, current) => {
+                return (current.size > largest.size) ? current : largest;
+            }, analysisData.cluster_stats[0]);
+            
+            return `${largestCluster.customer_type || 'Segment ' + (largestCluster.cluster_id + 1)} (${largestCluster.percentage}%)`;
         }
     </script>
 </body>

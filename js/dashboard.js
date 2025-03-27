@@ -21,6 +21,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 shorthand: ['Janv', 'Févr', 'Mars', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'],
                 longhand: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
             }
+        },
+        onChange: function(selectedDates, dateStr) {
+            if (selectedDates.length === 2) {
+                // Nous avons une plage de dates complète
+                console.log('Date range selected:', dateStr);
+                
+                // Filtrer les données en fonction de la plage de dates sélectionnée
+                const filteredData = filterDataByDateRange(globalData, selectedDates[0], selectedDates[1]);
+                
+                // Mettre à jour tous les graphiques et statistiques avec les données filtrées
+                updateAllVisualizations(filteredData);
+            }
         }
     });
 
@@ -2633,4 +2645,167 @@ function showClientLoyaltyDetails(clientId) {
         modal.querySelector('.history-list').innerHTML = historiqueComplet;
         this.style.display = 'none';
     });
+}
+
+// Fonction pour filtrer les données par plage de dates
+function filterDataByDateRange(data, startDate, endDate) {
+    // S'assurer que endDate inclut la fin de la journée
+    endDate = new Date(endDate);
+    endDate.setHours(23, 59, 59, 999);
+    
+    console.log(`Filtrage des données du ${startDate.toLocaleDateString('fr-FR')} au ${endDate.toLocaleDateString('fr-FR')}`);
+    
+    // Afficher visuellement la plage de dates sélectionnée
+    const dateRangeDisplay = document.querySelector('.date-filter span');
+    if (!dateRangeDisplay) {
+        // Créer un élément span pour afficher la plage de dates si non existant
+        const dateFilter = document.querySelector('.date-filter');
+        if (dateFilter) {
+            const span = document.createElement('span');
+            span.classList.add('selected-date-range');
+            span.style.marginLeft = '10px';
+            span.style.fontSize = '0.9rem';
+            span.style.color = 'var(--primary-color)';
+            dateFilter.appendChild(span);
+        }
+    }
+    
+    // Mettre à jour le texte de la plage de dates
+    const selectedDateDisplay = document.querySelector('.date-filter .selected-date-range');
+    if (selectedDateDisplay) {
+        selectedDateDisplay.textContent = `${startDate.toLocaleDateString('fr-FR')} - ${endDate.toLocaleDateString('fr-FR')}`;
+    }
+    
+    const filteredResult = data.filter(item => {
+        // Déterminer quel champ de date utiliser (certaines données peuvent utiliser 'date' ou 'date_achat')
+        const dateField = item.date_achat ? 'date_achat' : (item.date ? 'date' : null);
+        
+        if (!dateField) {
+            console.warn('Item sans champ de date trouvé:', item);
+            return false; // Exclure les éléments sans date
+        }
+        
+        let itemDate;
+        try {
+            itemDate = new Date(item[dateField]);
+            
+            // Vérifier si la date est valide
+            if (isNaN(itemDate.getTime())) {
+                console.warn('Date invalide trouvée:', item[dateField], item);
+                return false;
+            }
+            
+            return itemDate >= startDate && itemDate <= endDate;
+        } catch (error) {
+            console.error('Erreur lors du traitement de la date:', error, item);
+            return false;
+        }
+    });
+    
+    console.log(`Données filtrées: ${filteredResult.length} éléments sur ${data.length} (${Math.round(filteredResult.length / data.length * 100)}%)`);
+    
+    return filteredResult;
+}
+
+// Fonction pour mettre à jour toutes les visualisations avec de nouvelles données
+function updateAllVisualizations(filteredData) {
+    // Montrer un indicateur de chargement
+    showLoadingIndicator();
+    
+    // Utiliser setTimeout pour permettre à l'indicateur de chargement de s'afficher
+    setTimeout(() => {
+        try {
+            // Mettre à jour les statistiques du tableau de bord
+            updateDashboardStats(filteredData);
+            
+            // Mettre à jour tous les graphiques
+            updateSalesChart(filteredData, currentPeriod.sales);
+            updateHourlyTrendChart(filteredData, document.getElementById('hourly-trend-select')?.value || 'today');
+            updateSalesHeatmapChart(filteredData, document.getElementById('heatmap-select')?.value || 'day');
+            updateBasketAnalysisChart(filteredData, document.getElementById('basket-analysis-select')?.value || 'size');
+            updateCategoryPerformanceChart(filteredData, document.getElementById('category-performance-select')?.value || 'revenue');
+            
+            // Mettre à jour les top produits et magasins
+            displayTopProducts(filteredData, currentPeriod.products);
+            displayTopStores(filteredData, currentPeriod.stores);
+            
+            // Mettre à jour le tableau de données clients
+            displayClientData(filteredData);
+            
+            console.log('Toutes les visualisations ont été mises à jour avec succès.');
+        } catch (error) {
+            console.error('Erreur lors de la mise à jour des visualisations:', error);
+        } finally {
+            // Cacher l'indicateur de chargement
+            hideLoadingIndicator();
+        }
+    }, 50);
+}
+
+// Fonction pour afficher l'indicateur de chargement
+function showLoadingIndicator() {
+    // Vérifier si l'indicateur existe déjà
+    let loadingIndicator = document.getElementById('loading-overlay');
+    
+    if (!loadingIndicator) {
+        // Créer l'indicateur de chargement
+        loadingIndicator = document.createElement('div');
+        loadingIndicator.id = 'loading-overlay';
+        loadingIndicator.innerHTML = `
+            <div class="loading-content">
+                <div class="spinner"></div>
+                <p>Mise à jour des données...</p>
+            </div>
+        `;
+        
+        // Ajouter des styles inline pour l'indicateur
+        loadingIndicator.style.position = 'fixed';
+        loadingIndicator.style.top = '0';
+        loadingIndicator.style.left = '0';
+        loadingIndicator.style.width = '100%';
+        loadingIndicator.style.height = '100%';
+        loadingIndicator.style.backgroundColor = 'rgba(255, 255, 255, 0.8)';
+        loadingIndicator.style.display = 'flex';
+        loadingIndicator.style.justifyContent = 'center';
+        loadingIndicator.style.alignItems = 'center';
+        loadingIndicator.style.zIndex = '9999';
+        
+        // Ajouter des styles pour le contenu
+        const style = document.createElement('style');
+        style.textContent = `
+            .loading-content {
+                text-align: center;
+                padding: 20px;
+                background-color: white;
+                border-radius: 10px;
+                box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            }
+            .spinner {
+                border: 5px solid rgba(0, 0, 0, 0.1);
+                border-top-color: var(--primary-color, #4361ee);
+                border-radius: 50%;
+                width: 40px;
+                height: 40px;
+                animation: spin 1s linear infinite;
+                margin: 0 auto 15px;
+            }
+            @keyframes spin {
+                to { transform: rotate(360deg); }
+            }
+        `;
+        
+        document.head.appendChild(style);
+        document.body.appendChild(loadingIndicator);
+    } else {
+        // Si l'indicateur existe déjà, assurez-vous qu'il est visible
+        loadingIndicator.style.display = 'flex';
+    }
+}
+
+// Fonction pour cacher l'indicateur de chargement
+function hideLoadingIndicator() {
+    const loadingIndicator = document.getElementById('loading-overlay');
+    if (loadingIndicator) {
+        loadingIndicator.style.display = 'none';
+    }
 } 

@@ -9,6 +9,47 @@ from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 import sys
+from collections import defaultdict
+
+# Mapping des programmes de fidélité par catégorie de produit
+PRODUCT_LOYALTY_MAPPING = {
+    "Alimentaire": {
+        "recommended_programs": ["points_achat", "cashback", "personnalise"],
+        "explanation": "Secteur à achats fréquents mais marges réduites"
+    },
+    "Électronique": {
+        "recommended_programs": ["paliers", "programme_valeur", "garantie_etendue"],
+        "explanation": "Produits à forte valeur, achat peu fréquent"
+    },
+    "Mode": {
+        "recommended_programs": ["paliers", "personnalise", "club_exclusif"],
+        "explanation": "Secteur où le statut et l'exclusivité sont importants"
+    },
+    "Beauté": {
+        "recommended_programs": ["points_achat", "échantillons", "paliers"],
+        "explanation": "Achat récurrent avec fort potentiel de cross-selling"
+    },
+    "Maison": {
+        "recommended_programs": ["cashback", "garantie", "communautaire"],
+        "explanation": "Achats moins fréquents à plus forte valeur"
+    },
+    "Sport": {
+        "recommended_programs": ["gamification", "communautaire", "événements"],
+        "explanation": "Clientèle engagée, sensible à la performance et la communauté"
+    },
+    "Luxe": {
+        "recommended_programs": ["club_exclusif", "programme_valeur", "service_premium"],
+        "explanation": "Valorise l'exclusivité et le service personnalisé"
+    },
+    "Voyage": {
+        "recommended_programs": ["points_achat", "paliers", "partenaires"],
+        "explanation": "Bénéficie de programmes à accumulation sur le long terme"
+    },
+    "Santé/Bien-être": {
+        "recommended_programs": ["abonnement", "communautaire", "coaching"],
+        "explanation": "Engagement sur la durée et suivi personnalisé valorisés"
+    }
+}
 
 def load_data(loyalty_path, purchases_path):
     """Load and merge customer data from loyalty and purchases JSON files."""
@@ -24,8 +65,10 @@ def load_data(loyalty_path, purchases_path):
         # Convert to pandas DataFrames
         loyalty_df = pd.DataFrame(loyalty_data)
         
-        # Extract basic purchase info
+        # Extract basic purchase info and product categories
         purchase_info = []
+        product_preferences = defaultdict(lambda: defaultdict(float))
+        
         for purchase in purchases_data:
             client_id = purchase.get('Client_ID')
             age = purchase.get('Âge', 0)
@@ -35,14 +78,20 @@ def load_data(loyalty_path, purchases_path):
             
             # Extract product categories
             product_categories = {}
-            if 'Produits' in purchase:
+            if 'Produits' in purchase and client_id:
                 for product in purchase['Produits']:
-                    category = product.get('Nom_Produit', 'Unknown')
+                    # Récupération de la catégorie du produit
+                    category = product.get('Catégorie', 'Autre')
                     cost = product.get('Total_Coût_Produit (€)', 0)
+                    
+                    # Ajouter au total par catégorie
                     if category in product_categories:
                         product_categories[category] += cost
                     else:
                         product_categories[category] = cost
+                    
+                    # Ajouter aux préférences globales du client
+                    product_preferences[client_id][category] += cost
             
             purchase_info.append({
                 'client_id': client_id,
@@ -55,11 +104,37 @@ def load_data(loyalty_path, purchases_path):
         
         purchases_df = pd.DataFrame(purchase_info)
         
-        # Merge dataframes on client_id
-        # Keep only loyalty data as purchases data might have duplicates
-        combined_df = loyalty_df.copy()
+        # Agréger les achats par client
+        if not purchases_df.empty and 'client_id' in purchases_df.columns:
+            purchases_agg = purchases_df.groupby('client_id').agg({
+                'total_achat': 'sum',
+                'nombre_produits': 'sum'
+            }).reset_index()
+            
+            # Merger avec les données de fidélité
+            combined_df = pd.merge(loyalty_df, purchases_agg, on='client_id', how='left')
+        else:
+            combined_df = loyalty_df.copy()
         
-        return combined_df
+        # Convertir les préférences produits en dataframe
+        product_categories_list = set()
+        for prefs in product_preferences.values():
+            product_categories_list.update(prefs.keys())
+        
+        # Créer des colonnes pour chaque catégorie de produit
+        for category in product_categories_list:
+            category_col = f"cat_{category.lower().replace(' ', '_').replace('/', '_')}"
+            combined_df[category_col] = combined_df['client_id'].map(
+                lambda x: product_preferences[x][category] if x in product_preferences else 0
+            )
+        
+        # Ajouter une colonne avec la catégorie préférée de chaque client
+        combined_df['categorie_preferee'] = combined_df['client_id'].map(
+            lambda x: max(product_preferences[x].items(), key=lambda item: item[1])[0] 
+            if x in product_preferences and product_preferences[x] else 'Inconnue'
+        )
+        
+        return combined_df, dict(product_preferences), list(product_categories_list)
     
     except Exception as e:
         print(f"Error loading data: {str(e)}", file=sys.stderr)
@@ -116,7 +191,37 @@ def perform_clustering(X, n_clusters=3):
         print(f"Error performing clustering: {str(e)}", file=sys.stderr)
         sys.exit(1)
 
-def analyze_clusters(df, clusters, features):
+def recommend_loyalty_programs(client_preferences, product_categories):
+    """Recommande des programmes de fidélité basés sur les préférences produit."""
+    recommendations = {}
+    
+    for client_id, preferences in client_preferences.items():
+        # Trouver la catégorie dominante
+        if not preferences:
+            continue
+            
+        dominant_category = max(preferences.items(), key=lambda x: x[1])[0]
+        
+        # Récupérer les programmes recommandés pour cette catégorie
+        if dominant_category in PRODUCT_LOYALTY_MAPPING:
+            recommendations[client_id] = {
+                'categorie_dominante': dominant_category,
+                'programmes_recommandes': PRODUCT_LOYALTY_MAPPING[dominant_category]['recommended_programs'],
+                'explication': PRODUCT_LOYALTY_MAPPING[dominant_category]['explanation'],
+                'preferences': dict(preferences)
+            }
+        else:
+            # Catégorie non reconnue, on utilise une approche générique
+            recommendations[client_id] = {
+                'categorie_dominante': dominant_category,
+                'programmes_recommandes': ["points_achat", "personnalise"],
+                'explication': "Approche générique pour catégorie non reconnue",
+                'preferences': dict(preferences)
+            }
+    
+    return recommendations
+
+def analyze_clusters(df, clusters, features, client_preferences, product_categories):
     """Analyze clusters to derive insights about each customer segment."""
     try:
         # Add cluster labels to the dataframe
@@ -189,6 +294,45 @@ def analyze_clusters(df, clusters, features):
                 else:
                     stats['customer_type'] = 'Client Mixte'
             
+            # Analyse des préférences de produits pour ce segment
+            cluster_client_ids = cluster_data['client_id'].tolist()
+            
+            # Agréger les préférences de produits pour ce segment
+            segment_preferences = defaultdict(float)
+            for client_id in cluster_client_ids:
+                if client_id in client_preferences:
+                    for category, amount in client_preferences[client_id].items():
+                        segment_preferences[category] += amount
+            
+            # Trouver les catégories dominantes pour ce segment
+            if segment_preferences:
+                total_spending = sum(segment_preferences.values())
+                top_categories = sorted(segment_preferences.items(), key=lambda x: x[1], reverse=True)[:3]
+                
+                stats['product_preferences'] = [
+                    {
+                        'category': cat,
+                        'amount': round(amount, 2),
+                        'percentage': round((amount / total_spending) * 100, 2) if total_spending > 0 else 0
+                    } for cat, amount in top_categories
+                ]
+                
+                # Recommendations de programmes de fidélité pour ce segment
+                top_category = top_categories[0][0] if top_categories else None
+                if top_category and top_category in PRODUCT_LOYALTY_MAPPING:
+                    stats['loyalty_recommendations'] = {
+                        'top_category': top_category,
+                        'programs': PRODUCT_LOYALTY_MAPPING[top_category]['recommended_programs'],
+                        'explanation': PRODUCT_LOYALTY_MAPPING[top_category]['explanation']
+                    }
+                else:
+                    # Approche générique
+                    stats['loyalty_recommendations'] = {
+                        'top_category': top_category if top_category else 'Inconnue',
+                        'programs': ["points_achat", "personnalise"],
+                        'explanation': "Approche générique basée sur les habitudes d'achat"
+                    }
+            
             cluster_stats.append(stats)
         
         # Get sample clients from each cluster (max 10 per cluster)
@@ -198,6 +342,18 @@ def analyze_clusters(df, clusters, features):
             samples = cluster_data.sample(min(10, len(cluster_data))).to_dict(orient='records')
             for sample in samples:
                 sample['cluster'] = cluster_id
+                
+                # Ajouter les recommandations personnalisées
+                client_id = sample.get('client_id')
+                if client_id in client_preferences:
+                    preferences = client_preferences[client_id]
+                    if preferences:
+                        top_category = max(preferences.items(), key=lambda x: x[1])[0]
+                        if top_category in PRODUCT_LOYALTY_MAPPING:
+                            sample['recommended_programs'] = PRODUCT_LOYALTY_MAPPING[top_category]['recommended_programs']
+                            sample['category_explanation'] = PRODUCT_LOYALTY_MAPPING[top_category]['explanation']
+                            sample['preferred_category'] = top_category
+                
                 sample_clients.append(sample)
         
         return cluster_stats, sample_clients
@@ -220,7 +376,7 @@ def main():
     feature_list = args.features.split(',')
     
     # Load and prepare data
-    df = load_data(args.loyalty, args.purchases)
+    df, client_preferences, product_categories = load_data(args.loyalty, args.purchases)
     
     # Ensure all requested features exist in the dataframe
     valid_features = [f for f in feature_list if f in df.columns]
@@ -228,14 +384,23 @@ def main():
         print("Error: None of the specified features exist in the data", file=sys.stderr)
         sys.exit(1)
     
+    # Add product category features if requested
+    if 'product_categories' in feature_list:
+        # Select product category columns that start with 'cat_'
+        cat_features = [col for col in df.columns if col.startswith('cat_')]
+        valid_features.extend(cat_features)
+    
     # Prepare data for clustering
     X_scaled, final_features = prepare_data(df, valid_features)
     
     # Perform clustering
     clusters, centers, X_pca, pca_centers, inertia, explained_variance = perform_clustering(X_scaled, args.clusters)
     
+    # Generate product-based loyalty recommendations
+    loyalty_recommendations = recommend_loyalty_programs(client_preferences, product_categories)
+    
     # Analyze clusters
-    cluster_stats, sample_clients = analyze_clusters(df, clusters, valid_features)
+    cluster_stats, sample_clients = analyze_clusters(df, clusters, valid_features, client_preferences, product_categories)
     
     # Prepare results
     results = {
@@ -248,11 +413,13 @@ def main():
             'centers': pca_centers.tolist(),
             'cluster_labels': clusters.tolist(),
             'explained_variance': explained_variance.tolist()
-        }
+        },
+        'product_categories': product_categories,
+        'loyalty_recommendations': loyalty_recommendations
     }
     
-    # Output JSON results
+    # Output results as JSON
     print(json.dumps(results))
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main() 

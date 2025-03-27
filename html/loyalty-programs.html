@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Programmes de Fidélisation Personnalisés - Scan2Save</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .segment-card {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+            margin-bottom: 1.5rem;
+            background-color: var(--bg-light);
+            border: 1px solid var(--border-color);
+        }
+        
+        .segment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .segment-header {
+            padding: 1.2rem;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .segment-header h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+        }
+        
+        .segment-header .percentage {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .segment-body {
+            padding: 1.5rem;
+        }
+        
+        .segment-stats {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-box {
+            flex: 1 1 45%;
+            background-color: var(--bg-very-light);
+            padding: 0.8rem 1.2rem;
+            border-radius: var(--radius-sm);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .stat-box h4 {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-color-light);
+        }
+        
+        .stat-box p {
+            margin: 0.3rem 0 0;
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .program-list {
+            margin-top: 2rem;
+        }
+        
+        .program-card {
+            background-color: white;
+            border-radius: var(--radius-sm);
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+        }
+        
+        .program-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .program-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+        }
+        
+        .program-title {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .match-score {
+            background-color: var(--primary-light-color);
+            color: var(--primary-dark);
+            padding: 0.2rem 0.6rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .program-type {
+            display: inline-block;
+            font-size: 0.8rem;
+            padding: 0.1rem 0.5rem;
+            border-radius: 4px;
+            background-color: var(--bg-very-light);
+            color: var(--text-color-light);
+            margin-bottom: 0.6rem;
+        }
+        
+        .program-desc {
+            margin-bottom: 1rem;
+            color: var(--text-color);
+            font-size: 0.95rem;
+        }
+        
+        .benefits-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .benefits-list li {
+            padding: 0.4rem 0;
+            display: flex;
+            align-items: center;
+            font-size: 0.9rem;
+        }
+        
+        .benefits-list li i {
+            margin-right: 0.5rem;
+            color: var(--success-color);
+        }
+        
+        .stats-tag {
+            display: inline-block;
+            font-size: 0.8rem;
+            margin-right: 0.6rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .cost-tag {
+            background-color: #f8f9fa;
+            color: #495057;
+        }
+        
+        .retention-tag {
+            background-color: #e8f4fd;
+            color: #0d6efd;
+        }
+        
+        .segment-controls {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .color-swatch {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+        
+        .segment-personas {
+            list-style-type: none;
+            padding: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        .persona-item {
+            flex: 1 1 calc(20% - 1rem);
+            min-width: 180px;
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            background-color: white;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .persona-icon {
+            font-size: 2rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .persona-name {
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+        
+        .persona-desc {
+            font-size: 0.85rem;
+            color: var(--text-color-light);
+        }
+        
+        .placeholder-icon {
+            font-size: 5rem;
+            color: var(--border-color);
+            margin: 2rem 0;
+        }
+        
+        .placeholder-text {
+            color: var(--text-color-light);
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        /* Couleurs des segments */
+        .segment-colors {
+            --segment-0-color: #06d6a0;
+            --segment-1-color: #118ab2;
+            --segment-2-color: #ef476f;
+            --segment-3-color: #ffd166;
+            --segment-4-color: #073b4c;
+            --segment-5-color: #9c89b8;
+        }
+        
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+        
+        .loader {
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content">
+            <div class="logo">
+                <img src="../images/log.png" alt="Scan2Save Logo" class="logo-img">
+                Scan2Save
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="../images/log.png" alt="Scan2Save Logo" class="sidebar-logo">
+            <h2>Scan2Save</h2>
+        </div>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/dashboard"><i class="fas fa-chart-line"></i> Tableau de bord</a>
+                </li>
+                <li>
+                    <a href="/dashboard#sales-section"><i class="fas fa-shopping-cart"></i> Ventes</a>
+                </li>
+                <li>
+                    <a href="/dashboard#stores-section"><i class="fas fa-store"></i> Magasins</a>
+                </li>
+                <li>
+                    <a href="/dashboard#products-section"><i class="fas fa-box"></i> Produits</a>
+                </li>
+                <li>
+                    <a href="/dashboard#clients-section"><i class="fas fa-users"></i> Clients</a>
+                </li>
+                <li>
+                    <a href="/dashboard#loyalty-section"><i class="fas fa-award"></i> Programme Fidélité</a>
+                </li>
+                <li>
+                    <a href="/profiling"><i class="fas fa-users-cog"></i> Profiling Clients</a>
+                </li>
+                <li>
+                    <a href="/prediction"><i class="fas fa-chart-line"></i> Prédiction Achats</a>
+                </li>
+                <li class="active">
+                    <a href="/loyalty-programs"><i class="fas fa-star"></i> Fidélisation Personnalisée</a>
+                </li>
+                <li>
+                    <a href="/product-loyalty"><i class="fas fa-tags"></i> Fidélisation par Produit</a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/"><i class="fas fa-arrow-left"></i> Retour au site</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Rechercher...">
+            </div>
+            <div class="header-user">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p>Thomas Dupont</p>
+                        <span>Administrateur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content segment-colors">
+            <div class="profiling-title">
+                <h1><i class="fas fa-star"></i> Programmes de Fidélisation Personnalisés</h1>
+                <button id="refresh-btn" class="btn btn-outline-primary">
+                    <i class="fas fa-sync-alt"></i> Rafraîchir l'analyse
+                </button>
+            </div>
+
+            <div class="segment-controls">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h4>Configuration des segments</h4>
+                        <div class="input-group mb-3">
+                            <span class="input-group-text">Nombre de segments</span>
+                            <select id="segment-count" class="form-select">
+                                <option value="3">3 segments</option>
+                                <option value="4">4 segments</option>
+                                <option value="5" selected>5 segments</option>
+                                <option value="6">6 segments</option>
+                                <option value="7">7 segments</option>
+                            </select>
+                            <button id="apply-segments" class="btn btn-primary">Appliquer</button>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Explication des personas</h4>
+                        <p class="text-muted">Chaque segment de clients est associé à une personnalité type (persona) avec des caractéristiques et comportements distincts.</p>
+                    </div>
+                </div>
+
+                <div class="persona-section">
+                    <h5>Personnalités principales</h5>
+                    <ul class="segment-personas">
+                        <li class="persona-item">
+                            <i class="fas fa-crown persona-icon" style="color: #FFD700;"></i>
+                            <div class="persona-name">Client Fidèle Premium</div>
+                            <div class="persona-desc">Clients à forte valeur, achats fréquents, fidélité élevée</div>
+                        </li>
+                        <li class="persona-item">
+                            <i class="fas fa-user-check persona-icon" style="color: #4CAF50;"></i>
+                            <div class="persona-name">Client Fidèle Régulier</div>
+                            <div class="persona-desc">Clients fidèles avec fréquence d'achat moyenne</div>
+                        </li>
+                        <li class="persona-item">
+                            <i class="fas fa-sync-alt persona-icon" style="color: #2196F3;"></i>
+                            <div class="persona-name">Client Régulier</div>
+                            <div class="persona-desc">Clients stables avec achats prévisibles</div>
+                        </li>
+                        <li class="persona-item">
+                            <i class="fas fa-gem persona-icon" style="color: #9C27B0;"></i>
+                            <div class="persona-name">Client Occasionnel à Potentiel</div>
+                            <div class="persona-desc">Achats rares mais à forte valeur</div>
+                        </li>
+                        <li class="persona-item">
+                            <i class="fas fa-shopping-bag persona-icon" style="color: #FF9800;"></i>
+                            <div class="persona-name">Client Occasionnel</div>
+                            <div class="persona-desc">Achats peu fréquents et valeur moyenne</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <div id="segments-container" class="row">
+                <!-- Le contenu sera généré dynamiquement par JavaScript -->
+                <div class="loading-container">
+                    <div class="loader"></div>
+                    <p>Analyse et segmentation des clients en cours...</p>
+                    <p class="text-muted">Cela peut prendre quelques instants</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialisation de la page
+            setTimeout(() => {
+                document.querySelector('.preloader').style.display = 'none';
+            }, 800);
+
+            // Charger les données de fidélisation
+            loadLoyaltyData();
+
+            // Écouteurs d'événements
+            document.getElementById('apply-segments').addEventListener('click', function() {
+                const segments = document.getElementById('segment-count').value;
+                loadLoyaltyData(segments);
+            });
+
+            document.getElementById('refresh-btn').addEventListener('click', function() {
+                const segments = document.getElementById('segment-count').value;
+                loadLoyaltyData(segments);
+            });
+        });
+
+        // Fonction pour charger les données de fidélisation
+        function loadLoyaltyData(segments = 5) {
+            // Afficher le chargement
+            document.getElementById('segments-container').innerHTML = `
+                <div class="loading-container">
+                    <div class="loader"></div>
+                    <p>Analyse et segmentation des clients en cours...</p>
+                    <p class="text-muted">Cela peut prendre quelques instants</p>
+                </div>
+            `;
+
+            // Requête API
+            fetch('/api/loyalty-recommendations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ segments: parseInt(segments) }),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur lors de la récupération des données');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderSegments(data);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                document.getElementById('segments-container').innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Une erreur est survenue lors de l'analyse. Veuillez réessayer.
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Fonction pour afficher les segments
+        function renderSegments(data) {
+            const segmentsContainer = document.getElementById('segments-container');
+            segmentsContainer.innerHTML = '';
+
+            const segmentRecommendations = data.segment_recommendations;
+
+            if (!segmentRecommendations || segmentRecommendations.length === 0) {
+                segmentsContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i>
+                            Aucun segment n'a pu être identifié. Vérifiez les données clients.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Mapping des icônes pour chaque persona
+            const personaIcons = {
+                'Client Fidèle Premium': '<i class="fas fa-crown" style="color: #FFD700;"></i>',
+                'Client Fidèle Régulier': '<i class="fas fa-user-check" style="color: #4CAF50;"></i>',
+                'Client Régulier': '<i class="fas fa-sync-alt" style="color: #2196F3;"></i>',
+                'Client Occasionnel à Potentiel': '<i class="fas fa-gem" style="color: #9C27B0;"></i>',
+                'Client Occasionnel': '<i class="fas fa-shopping-bag" style="color: #FF9800;"></i>',
+                'Client Sensible aux Prix': '<i class="fas fa-tags" style="color: #F44336;"></i>',
+                'Client Mixte': '<i class="fas fa-random" style="color: #607D8B;"></i>'
+            };
+
+            segmentRecommendations.forEach((segment, index) => {
+                const segmentId = segment.segment_id;
+                const segmentColor = `var(--segment-${segmentId}-color, #${Math.floor(Math.random()*16777215).toString(16)})`;
+                const persona = segment.persona || 'Client Standard';
+                const iconHtml = personaIcons[persona] || '<i class="fas fa-user"></i>';
+                
+                const segmentHTML = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="segment-card">
+                            <div class="segment-header" style="background-color: ${segmentColor};">
+                                <h3>${iconHtml} ${persona}</h3>
+                                <span class="percentage">${segment.percentage}% des clients</span>
+                            </div>
+                            <div class="segment-body">
+                                <div class="segment-stats">
+                                    <div class="stat-box">
+                                        <h4>Fidélité</h4>
+                                        <p>${segment.segment_characteristics.loyalty_level}</p>
+                                    </div>
+                                    <div class="stat-box">
+                                        <h4>Fréquence d'achat</h4>
+                                        <p>${segment.segment_characteristics.purchase_frequency}</p>
+                                    </div>
+                                    <div class="stat-box">
+                                        <h4>Niveau de dépense</h4>
+                                        <p>${segment.segment_characteristics.spending_level}</p>
+                                    </div>
+                                    <div class="stat-box">
+                                        <h4>Groupe d'âge</h4>
+                                        <p>${segment.segment_characteristics.age_group}</p>
+                                    </div>
+                                </div>
+                                
+                                <h4>Programmes recommandés</h4>
+                                <div class="program-list">
+                                    ${renderProgramsList(segment.recommended_programs)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                segmentsContainer.innerHTML += segmentHTML;
+            });
+        }
+
+        // Fonction pour afficher la liste des programmes recommandés
+        function renderProgramsList(programs) {
+            if (!programs || programs.length === 0) {
+                return `<p class="text-muted">Aucun programme recommandé</p>`;
+            }
+
+            // Mapping des icônes pour chaque type de programme
+            const programTypeIcons = {
+                'transactionnel': 'fas fa-coins',
+                'niveau': 'fas fa-layer-group',
+                'expérientiel': 'fas fa-star',
+                'monétaire': 'fas fa-percentage',
+                'partenariat': 'fas fa-handshake',
+                'payant': 'fas fa-credit-card',
+                'individualisé': 'fas fa-user-cog',
+                'engagement': 'fas fa-gamepad',
+                'exclusivité': 'fas fa-crown',
+                'social': 'fas fa-users'
+            };
+
+            let html = '';
+            programs.forEach(program => {
+                const typeIcon = programTypeIcons[program.type] || 'fas fa-tag';
+                const benefits = program.benefits || [];
+                
+                html += `
+                    <div class="program-card">
+                        <div class="program-header">
+                            <h5 class="program-title">${program.name}</h5>
+                            <span class="match-score">Score: ${program.match_score}%</span>
+                        </div>
+                        <span class="program-type"><i class="${typeIcon}"></i> ${program.type}</span>
+                        <p class="program-desc">${program.description}</p>
+                        <ul class="benefits-list">
+                            ${benefits.map(benefit => `<li><i class="fas fa-check-circle"></i> ${benefit}</li>`).join('')}
+                        </ul>
+                        <div class="program-stats mt-2">
+                            <span class="stats-tag cost-tag">Coût: ${program.implementation_cost}</span>
+                            <span class="stats-tag retention-tag">Rétention: ${Math.round(program.retention_rate * 100)}%</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+    </script>
+</body>
+</html> 

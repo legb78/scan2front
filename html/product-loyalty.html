@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fidélisation par Produit - Scan2Save</title>
+    <link rel="stylesheet" href="../css/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="../css/dashboard.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .product-card {
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            height: 100%;
+            margin-bottom: 1.5rem;
+            background-color: var(--bg-light);
+            border: 1px solid var(--border-color);
+        }
+        
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .product-header {
+            padding: 1.2rem;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            height: 120px;
+            display: flex;
+            align-items: flex-end;
+        }
+        
+        .product-header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.1) 100%);
+            z-index: 1;
+        }
+        
+        .product-header h3 {
+            margin: 0;
+            font-size: 1.4rem;
+            font-weight: 600;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .product-body {
+            padding: 1.5rem;
+        }
+        
+        .product-explanation {
+            background-color: var(--bg-very-light);
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            margin-bottom: 1.5rem;
+            font-style: italic;
+            color: var(--text-color);
+            position: relative;
+        }
+        
+        .product-explanation::before {
+            content: '"';
+            position: absolute;
+            top: 0;
+            left: 0.5rem;
+            font-size: 2rem;
+            color: var(--primary-light-color);
+            line-height: 1;
+        }
+        
+        .product-explanation::after {
+            content: '"';
+            position: absolute;
+            bottom: -0.7rem;
+            right: 0.5rem;
+            font-size: 2rem;
+            color: var(--primary-light-color);
+            line-height: 1;
+        }
+        
+        .program-list {
+            margin-top: 1.5rem;
+        }
+        
+        .program-card {
+            background-color: white;
+            border-radius: var(--radius-sm);
+            padding: 1.2rem;
+            margin-bottom: 1rem;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+        }
+        
+        .program-card:hover {
+            box-shadow: var(--shadow-md);
+        }
+        
+        .program-icon {
+            flex: 0 0 50px;
+            height: 50px;
+            border-radius: 50%;
+            background-color: var(--primary-light-color);
+            color: var(--primary-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            margin-right: 1rem;
+        }
+        
+        .program-content {
+            flex-grow: 1;
+        }
+        
+        .program-title {
+            margin: 0 0 0.3rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+        
+        .program-desc {
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+            font-size: 0.9rem;
+        }
+        
+        .benefits-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-wrap: wrap;
+        }
+        
+        .benefits-list li {
+            padding: 0.2rem 0.4rem;
+            margin-right: 0.5rem;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            font-size: 0.8rem;
+            background-color: var(--bg-very-light);
+            border-radius: 4px;
+            color: var(--text-color-light);
+        }
+        
+        .benefits-list li i {
+            margin-right: 0.3rem;
+            color: var(--primary-color);
+            font-size: 0.7rem;
+        }
+        
+        .stats-tag {
+            display: inline-block;
+            font-size: 0.8rem;
+            margin-right: 0.6rem;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+        }
+        
+        .cost-tag {
+            background-color: #f8f9fa;
+            color: #495057;
+        }
+        
+        .product-controls {
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .category-filter {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+        
+        .category-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background-color: var(--bg-very-light);
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid var(--border-color);
+        }
+        
+        .category-badge:hover, .category-badge.active {
+            background-color: var(--primary-color);
+            color: white;
+            border-color: var(--primary-color);
+        }
+        
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 3rem;
+        }
+        
+        .loader {
+            border: 5px solid var(--border-color);
+            border-top: 5px solid var(--primary-color);
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Couleurs des catégories */
+        .product-colors {
+            --product-alimentaire: #4CAF50;
+            --product-electronique: #2196F3;
+            --product-mode: #9C27B0;
+            --product-beaute: #E91E63;
+            --product-maison: #795548;
+            --product-sport: #FF9800;
+            --product-luxe: #F44336;
+            --product-voyage: #009688;
+            --product-sante: #8BC34A;
+        }
+        
+        /* Styles pour la section d'envoi d'offres */
+        .send-offers-section {
+            margin-top: 1.5rem;
+            margin-bottom: 2rem;
+            padding: 1.5rem;
+            background-color: white;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-sm);
+            border-left: 4px solid var(--primary-color);
+        }
+        
+        .send-offers-title {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .send-offers-title i {
+            font-size: 1.4rem;
+            color: var(--primary-color);
+            margin-right: 0.8rem;
+        }
+        
+        .send-offers-form {
+            margin-top: 1rem;
+        }
+        
+        .segmentation-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            margin-bottom: 1rem;
+        }
+        
+        .segment-option {
+            background-color: var(--bg-very-light);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+        
+        .segment-option:hover, .segment-option.active {
+            background-color: var(--primary-light-color);
+            border-color: var(--primary-color);
+        }
+        
+        .segment-option.active {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .offer-preview {
+            background-color: #f9f9f9;
+            border-radius: var(--radius-sm);
+            padding: 1rem;
+            margin-top: 1rem;
+            border: 1px dashed var(--border-color);
+        }
+        
+        .preview-header {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--text-color);
+        }
+        
+        .send-btn {
+            margin-top: 1rem;
+        }
+        
+        .product-select {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .product-select.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .product-select-content {
+            background-color: white;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            border-radius: var(--radius-md);
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+        
+        .close-modal {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-color-light);
+            transition: color 0.2s;
+        }
+        
+        .close-modal:hover {
+            color: var(--text-color);
+        }
+        
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .product-item {
+            padding: 1rem;
+            border-radius: var(--radius-sm);
+            background-color: var(--bg-very-light);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .product-item:hover {
+            background-color: var(--primary-light-color);
+            transform: translateY(-5px);
+        }
+        
+        .product-item i {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            color: var(--primary-dark);
+        }
+    </style>
+</head>
+<body>
+    <!-- Preloader -->
+    <div class="preloader">
+        <div class="preloader-content">
+            <div class="logo">
+                <img src="../images/log.png" alt="Scan2Save Logo" class="logo-img">
+                Scan2Save
+            </div>
+            <div class="loading-bar">
+                <div class="loading-progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <img src="../images/log.png" alt="Scan2Save Logo" class="sidebar-logo">
+            <h2>Scan2Save</h2>
+        </div>
+        <div class="sidebar-menu">
+            <ul>
+                <li>
+                    <a href="/dashboard"><i class="fas fa-chart-line"></i> Tableau de bord</a>
+                </li>
+                <li>
+                    <a href="/dashboard#sales-section"><i class="fas fa-shopping-cart"></i> Ventes</a>
+                </li>
+                <li>
+                    <a href="/dashboard#stores-section"><i class="fas fa-store"></i> Magasins</a>
+                </li>
+                <li>
+                    <a href="/dashboard#products-section"><i class="fas fa-box"></i> Produits</a>
+                </li>
+                <li>
+                    <a href="/dashboard#clients-section"><i class="fas fa-users"></i> Clients</a>
+                </li>
+                <li>
+                    <a href="/dashboard#loyalty-section"><i class="fas fa-award"></i> Programme Fidélité</a>
+                </li>
+                <li>
+                    <a href="/profiling"><i class="fas fa-users-cog"></i> Profiling Clients</a>
+                </li>
+                <li>
+                    <a href="/prediction"><i class="fas fa-chart-line"></i> Prédiction Achats</a>
+                </li>
+                <li>
+                    <a href="/loyalty-programs"><i class="fas fa-star"></i> Fidélisation Personnalisée</a>
+                </li>
+                <li class="active">
+                    <a href="/product-loyalty"><i class="fas fa-tags"></i> Fidélisation par Produit</a>
+                </li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <a href="/"><i class="fas fa-arrow-left"></i> Retour au site</a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="dashboard-header">
+            <div class="header-search">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="Rechercher...">
+            </div>
+            <div class="header-user">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user"></i>
+                    </div>
+                    <div class="user-info">
+                        <p>Thomas Dupont</p>
+                        <span>Administrateur</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="dashboard-content product-colors">
+            <div class="profiling-title">
+                <h1><i class="fas fa-tags"></i> Programmes de Fidélisation par Produit</h1>
+                <button id="select-product-btn" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Sélectionner un produit spécifique
+                </button>
+            </div>
+
+            <div class="product-controls">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h4>Filtrer par catégorie</h4>
+                        <div class="category-filter" id="category-filter">
+                            <span class="category-badge active" data-category="all">Toutes les catégories</span>
+                            <!-- Les badges de catégorie seront générés par JS -->
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h4>Fidélisation Orientée Produit</h4>
+                        <p class="text-muted">Chaque catégorie de produit nécessite une approche de fidélisation spécifique pour maximiser l'engagement client et les ventes.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="send-offers-section">
+                <div class="send-offers-title">
+                    <i class="fas fa-paper-plane"></i>
+                    <h4>Envoyer des Offres Promotionnelles Personnalisées</h4>
+                </div>
+                <p>Ciblez les clients avec des offres personnalisées basées sur les programmes de fidélisation adaptés à chaque segment et catégorie de produit.</p>
+                
+                <div class="send-offers-form">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label for="product-category" class="form-label">Catégorie de produit</label>
+                            <select id="product-category" class="form-select">
+                                <option value="" selected disabled>Sélectionner une catégorie</option>
+                                <option value="Alimentaire">Alimentaire</option>
+                                <option value="Électronique">Électronique</option>
+                                <option value="Mode">Mode</option>
+                                <option value="Beauté">Beauté</option>
+                                <option value="Maison">Maison</option>
+                                <option value="Sport">Sport</option>
+                                <option value="Luxe">Luxe</option>
+                                <option value="Voyage">Voyage</option>
+                                <option value="Santé/Bien-être">Santé/Bien-être</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="program-type" class="form-label">Type de programme</label>
+                            <select id="program-type" class="form-select">
+                                <option value="" selected disabled>Sélectionner un programme</option>
+                                <option value="points_achat">Points par achat</option>
+                                <option value="paliers">Programme à paliers</option>
+                                <option value="cashback">Remises cash-back</option>
+                                <option value="programme_valeur">Récompenses à valeur ajoutée</option>
+                                <option value="personnalise">Récompenses personnalisées</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Segmentation client cible</label>
+                            <div class="segmentation-options">
+                                <div class="segment-option" data-segment="premium">Clients Fidèles Premium</div>
+                                <div class="segment-option" data-segment="regular">Clients Réguliers</div>
+                                <div class="segment-option" data-segment="occasional">Clients Occasionnels</div>
+                                <div class="segment-option" data-segment="potential">Clients à Potentiel</div>
+                                <div class="segment-option" data-segment="all">Tous les segments</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <label for="offer-message" class="form-label">Message promotionnel</label>
+                            <textarea id="offer-message" class="form-control" rows="3" placeholder="Entrez votre message personnalisé..."></textarea>
+                        </div>
+                    </div>
+
+                    <div class="offer-preview">
+                        <div class="preview-header">Aperçu de l'offre</div>
+                        <div id="offer-preview-content">
+                            <p><strong>Programme :</strong> <span id="preview-program">--</span></p>
+                            <p><strong>Catégorie :</strong> <span id="preview-category">--</span></p>
+                            <p><strong>Cible :</strong> <span id="preview-segment">--</span></p>
+                            <p><strong>Message :</strong> <span id="preview-message">--</span></p>
+                            <p><strong>Clients ciblés :</strong> <span id="preview-count">0</span> clients</p>
+                        </div>
+                    </div>
+
+                    <div class="row send-btn">
+                        <div class="col-md-12">
+                            <button id="send-offer-btn" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane"></i> Envoyer l'offre promotionnelle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="products-container" class="row">
+                <!-- Le contenu sera généré dynamiquement par JavaScript -->
+                <div class="loading-container">
+                    <div class="loader"></div>
+                    <p>Analyse des catégories de produits en cours...</p>
+                    <p class="text-muted">Cela peut prendre quelques instants</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal pour la sélection de produit spécifique -->
+    <div class="product-select" id="product-select-modal">
+        <div class="product-select-content">
+            <i class="fas fa-times close-modal" id="close-modal"></i>
+            <h2>Sélectionner un produit</h2>
+            <p>Choisissez un produit spécifique pour voir les programmes de fidélisation recommandés.</p>
+            
+            <div class="input-group mb-3">
+                <input type="text" class="form-control" placeholder="Rechercher un produit..." id="product-search">
+                <button class="btn btn-outline-secondary" type="button"><i class="fas fa-search"></i></button>
+            </div>
+            
+            <h5>Catégories populaires</h5>
+            <div class="product-grid">
+                <div class="product-item" data-category="Alimentaire">
+                    <i class="fas fa-shopping-basket"></i>
+                    <div>Alimentaire</div>
+                </div>
+                <div class="product-item" data-category="Électronique">
+                    <i class="fas fa-laptop"></i>
+                    <div>Électronique</div>
+                </div>
+                <div class="product-item" data-category="Mode">
+                    <i class="fas fa-tshirt"></i>
+                    <div>Mode</div>
+                </div>
+                <div class="product-item" data-category="Beauté">
+                    <i class="fas fa-spa"></i>
+                    <div>Beauté</div>
+                </div>
+                <div class="product-item" data-category="Maison">
+                    <i class="fas fa-home"></i>
+                    <div>Maison</div>
+                </div>
+                <div class="product-item" data-category="Sport">
+                    <i class="fas fa-running"></i>
+                    <div>Sport</div>
+                </div>
+                <div class="product-item" data-category="Luxe">
+                    <i class="fas fa-gem"></i>
+                    <div>Luxe</div>
+                </div>
+                <div class="product-item" data-category="Voyage">
+                    <i class="fas fa-plane"></i>
+                    <div>Voyage</div>
+                </div>
+                <div class="product-item" data-category="Santé/Bien-être">
+                    <i class="fas fa-heartbeat"></i>
+                    <div>Santé/Bien-être</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialisation de la page
+            setTimeout(() => {
+                document.querySelector('.preloader').style.display = 'none';
+            }, 800);
+
+            // Charger les données de fidélisation
+            loadLoyaltyData();
+
+            // Écouteurs d'événements pour le filtre de catégories
+            document.getElementById('category-filter').addEventListener('click', function(e) {
+                if (e.target.classList.contains('category-badge')) {
+                    // Retirer la classe active de tous les badges
+                    document.querySelectorAll('.category-badge').forEach(badge => {
+                        badge.classList.remove('active');
+                    });
+                    
+                    // Ajouter la classe active au badge cliqué
+                    e.target.classList.add('active');
+                    
+                    // Filtrer les produits
+                    const category = e.target.dataset.category;
+                    filterProductsByCategory(category);
+                }
+            });
+
+            // Gestion du modal de sélection de produit
+            document.getElementById('select-product-btn').addEventListener('click', function() {
+                document.getElementById('product-select-modal').classList.add('active');
+            });
+
+            document.getElementById('close-modal').addEventListener('click', function() {
+                document.getElementById('product-select-modal').classList.remove('active');
+            });
+
+            // Sélection d'une catégorie dans le modal
+            document.querySelectorAll('.product-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const category = this.dataset.category;
+                    selectProductCategory(category);
+                    document.getElementById('product-select-modal').classList.remove('active');
+                });
+            });
+        });
+
+        // Fonction pour charger les données de fidélisation par produit
+        function loadLoyaltyData() {
+            // Afficher le chargement
+            document.getElementById('products-container').innerHTML = `
+                <div class="loading-container">
+                    <div class="loader"></div>
+                    <p>Analyse des catégories de produits en cours...</p>
+                    <p class="text-muted">Cela peut prendre quelques instants</p>
+                </div>
+            `;
+
+            // Requête API
+            fetch('/api/loyalty-recommendations', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur lors de la récupération des données');
+                }
+                return response.json();
+            })
+            .then(data => {
+                renderProductRecommendations(data);
+                populateCategoryFilter(data);
+            })
+            .catch(error => {
+                console.error('Erreur:', error);
+                document.getElementById('products-container').innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Une erreur est survenue lors de l'analyse. Veuillez réessayer.
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // Fonction pour afficher les recommandations par produit
+        function renderProductRecommendations(data) {
+            const productsContainer = document.getElementById('products-container');
+            productsContainer.innerHTML = '';
+
+            const productRecommendations = data.product_recommendations;
+
+            if (!productRecommendations || productRecommendations.length === 0) {
+                productsContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="alert alert-warning">
+                            <i class="fas fa-info-circle"></i>
+                            Aucune catégorie de produit n'a pu être identifiée. Vérifiez les données d'achat.
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            // Images d'arrière-plan pour chaque catégorie
+            const categoryBackgrounds = {
+                'Alimentaire': 'url("https://images.unsplash.com/photo-1542838132-92c53300491e?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Électronique': 'url("https://images.unsplash.com/photo-1526738549149-8e07eca6c147?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Mode': 'url("https://images.unsplash.com/photo-1445205170230-053b83016050?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Beauté': 'url("https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Maison': 'url("https://images.unsplash.com/photo-1484154218962-a197022b5858?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Sport': 'url("https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Luxe': 'url("https://images.unsplash.com/photo-1512163143273-bde0e3cc7407?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Voyage': 'url("https://images.unsplash.com/photo-1503220317375-aaad61436b1b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")',
+                'Santé/Bien-être': 'url("https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=60")'
+            };
+
+            // Icônes pour chaque programme
+            const programIcons = {
+                'points_achat': 'fas fa-coins',
+                'paliers': 'fas fa-layer-group',
+                'programme_valeur': 'fas fa-star',
+                'cashback': 'fas fa-percentage',
+                'coalition': 'fas fa-handshake',
+                'abonnement': 'fas fa-credit-card',
+                'personnalise': 'fas fa-user-cog',
+                'gamification': 'fas fa-gamepad',
+                'club_exclusif': 'fas fa-crown',
+                'communautaire': 'fas fa-users',
+                'garantie_etendue': 'fas fa-shield-alt',
+                'échantillons': 'fas fa-gift',
+                'garantie': 'fas fa-check-circle',
+                'événements': 'fas fa-calendar-alt',
+                'service_premium': 'fas fa-concierge-bell',
+                'partenaires': 'fas fa-handshake',
+                'coaching': 'fas fa-chalkboard-teacher'
+            };
+
+            productRecommendations.forEach(product => {
+                const category = product.category;
+                const background = categoryBackgrounds[category] || `linear-gradient(135deg, var(--primary-color), var(--primary-dark))`;
+                
+                const productHTML = `
+                    <div class="col-md-6 col-lg-4 product-category" data-category="${category}">
+                        <div class="product-card">
+                            <div class="product-header" style="background-image: ${background};">
+                                <h3>${category}</h3>
+                            </div>
+                            <div class="product-body">
+                                <div class="product-explanation">
+                                    ${product.explanation}
+                                </div>
+                                
+                                <h4>Programmes recommandés</h4>
+                                <div class="program-list">
+                                    ${renderProductProgramsList(product.recommended_programs, programIcons)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                productsContainer.innerHTML += productHTML;
+            });
+        }
+
+        // Fonction pour afficher la liste des programmes recommandés pour un produit
+        function renderProductProgramsList(programs, icons) {
+            if (!programs || programs.length === 0) {
+                return `<p class="text-muted">Aucun programme recommandé</p>`;
+            }
+
+            let html = '';
+            programs.forEach(program => {
+                const iconClass = icons[program.program_id] || 'fas fa-tag';
+                const benefits = program.benefits || [];
+                
+                html += `
+                    <div class="program-card">
+                        <div class="program-icon">
+                            <i class="${iconClass}"></i>
+                        </div>
+                        <div class="program-content">
+                            <h5 class="program-title">${program.name}</h5>
+                            <p class="program-desc">${program.description}</p>
+                            <ul class="benefits-list">
+                                ${benefits.map(benefit => `<li><i class="fas fa-check"></i> ${benefit}</li>`).join('')}
+                            </ul>
+                            <div class="program-stats mt-2">
+                                <span class="stats-tag cost-tag">Coût: ${program.implementation_cost}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            return html;
+        }
+
+        // Fonction pour peupler le filtre de catégories
+        function populateCategoryFilter(data) {
+            const categoryFilter = document.getElementById('category-filter');
+            const allBadge = categoryFilter.querySelector('[data-category="all"]');
+            
+            // Vider le filtre sauf "Toutes les catégories"
+            while (categoryFilter.lastChild !== allBadge) {
+                categoryFilter.removeChild(categoryFilter.lastChild);
+            }
+            
+            // Ajouter les catégories trouvées
+            const categories = new Set();
+            data.product_recommendations.forEach(product => {
+                categories.add(product.category);
+            });
+            
+            categories.forEach(category => {
+                const badge = document.createElement('span');
+                badge.className = 'category-badge';
+                badge.dataset.category = category;
+                badge.textContent = category;
+                categoryFilter.appendChild(badge);
+            });
+        }
+
+        // Fonction pour filtrer les produits par catégorie
+        function filterProductsByCategory(category) {
+            const productCards = document.querySelectorAll('.product-category');
+            
+            productCards.forEach(card => {
+                if (category === 'all' || card.dataset.category === category) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Fonction pour sélectionner une catégorie de produit
+        function selectProductCategory(category) {
+            // Activer le badge correspondant à la catégorie
+            const badges = document.querySelectorAll('.category-badge');
+            badges.forEach(badge => {
+                if (badge.dataset.category === category) {
+                    // Simuler un clic sur le badge
+                    badge.click();
+                }
+            });
+            
+            // Faire défiler jusqu'au premier produit visible
+            const firstProduct = document.querySelector(`.product-category[data-category="${category}"]`);
+            if (firstProduct) {
+                firstProduct.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        }
+    </script>
+
+    <script>
+        // Script pour la gestion des offres promotionnelles personnalisées
+        document.addEventListener('DOMContentLoaded', function() {
+            // Sélection des éléments du DOM
+            const productCategory = document.getElementById('product-category');
+            const programType = document.getElementById('program-type');
+            const offerMessage = document.getElementById('offer-message');
+            const segmentOptions = document.querySelectorAll('.segment-option');
+            const sendOfferBtn = document.getElementById('send-offer-btn');
+            
+            // Éléments de l'aperçu
+            const previewProgram = document.getElementById('preview-program');
+            const previewCategory = document.getElementById('preview-category');
+            const previewSegment = document.getElementById('preview-segment');
+            const previewMessage = document.getElementById('preview-message');
+            const previewCount = document.getElementById('preview-count');
+            
+            // Variables globales pour stocker les données
+            let selectedSegments = [];
+            let loyaltyData = null;
+            let segmentSizes = {
+                'premium': 112,
+                'regular': 187,
+                'occasional': 98,
+                'potential': 54,
+                'all': 451
+            };
+            
+            // Charger les données de segments clients (simulées pour l'instant)
+            function loadSegmentData() {
+                // Normalement, on ferait un appel API ici pour obtenir les données réelles
+                fetch('/api/loyalty-recommendations')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data.segment_recommendations) {
+                            loyaltyData = data;
+                            
+                            // Mettre à jour les tailles de segments avec les données réelles
+                            data.segment_recommendations.forEach(segment => {
+                                if (segment.persona.includes('Premium')) {
+                                    segmentSizes.premium = segment.size;
+                                } else if (segment.persona.includes('Régulier')) {
+                                    segmentSizes.regular = segment.size;
+                                } else if (segment.persona.includes('Occasionnel') && segment.persona.includes('Potentiel')) {
+                                    segmentSizes.potential = segment.size;
+                                } else if (segment.persona.includes('Occasionnel')) {
+                                    segmentSizes.occasional = segment.size;
+                                }
+                                
+                                // Mettre à jour le total
+                                segmentSizes.all = Object.values(segmentSizes).reduce((sum, size) => {
+                                    return (typeof size === 'number') ? sum + size : sum;
+                                }, 0) - segmentSizes.all;
+                            });
+                        }
+                    })
+                    .catch(error => console.error('Erreur lors du chargement des données de segments:', error));
+            }
+            
+            // Initialiser la fonctionnalité
+            function initOfferFunctionality() {
+                // Écouteurs d'événements pour les segments
+                segmentOptions.forEach(option => {
+                    option.addEventListener('click', function() {
+                        const segment = this.dataset.segment;
+                        
+                        if (segment === 'all') {
+                            // Si "Tous les segments" est sélectionné, désélectionner les autres
+                            segmentOptions.forEach(opt => {
+                                if (opt.dataset.segment !== 'all') {
+                                    opt.classList.remove('active');
+                                } else {
+                                    opt.classList.toggle('active');
+                                }
+                            });
+                            
+                            selectedSegments = this.classList.contains('active') ? ['all'] : [];
+                        } else {
+                            // Désactiver "Tous les segments" si un segment spécifique est sélectionné
+                            document.querySelector('.segment-option[data-segment="all"]').classList.remove('active');
+                            
+                            // Toggler la sélection du segment cliqué
+                            this.classList.toggle('active');
+                            
+                            // Mettre à jour la liste des segments sélectionnés
+                            if (this.classList.contains('active')) {
+                                selectedSegments.push(segment);
+                            } else {
+                                selectedSegments = selectedSegments.filter(s => s !== segment);
+                            }
+                        }
+                        
+                        updatePreview();
+                    });
+                });
+                
+                // Écouteurs pour les changements de sélection
+                productCategory.addEventListener('change', updatePreview);
+                programType.addEventListener('change', updatePreview);
+                offerMessage.addEventListener('input', updatePreview);
+                
+                // Écouteur pour le bouton d'envoi
+                sendOfferBtn.addEventListener('click', sendOffer);
+                
+                // Charger les données initiales
+                loadSegmentData();
+            }
+            
+            // Mettre à jour l'aperçu de l'offre
+            function updatePreview() {
+                // Mettre à jour les éléments d'aperçu
+                const category = productCategory.value || '--';
+                const program = programType.options[programType.selectedIndex]?.text || '--';
+                
+                // Construire la description des segments
+                let segmentText = '--';
+                if (selectedSegments.includes('all')) {
+                    segmentText = 'Tous les segments';
+                } else if (selectedSegments.length > 0) {
+                    segmentText = selectedSegments.map(s => {
+                        switch(s) {
+                            case 'premium': return 'Clients Fidèles Premium';
+                            case 'regular': return 'Clients Réguliers';
+                            case 'occasional': return 'Clients Occasionnels';
+                            case 'potential': return 'Clients à Potentiel';
+                            default: return s;
+                        }
+                    }).join(', ');
+                }
+                
+                // Calculer le nombre de clients ciblés
+                let clientCount = 0;
+                if (selectedSegments.includes('all')) {
+                    clientCount = segmentSizes.all;
+                } else {
+                    selectedSegments.forEach(s => {
+                        clientCount += segmentSizes[s] || 0;
+                    });
+                }
+                
+                // Mettre à jour l'aperçu
+                previewCategory.textContent = category;
+                previewProgram.textContent = program;
+                previewSegment.textContent = segmentText;
+                previewMessage.textContent = offerMessage.value || 'Aucun message';
+                previewCount.textContent = clientCount;
+            }
+            
+            // Envoyer l'offre (simulation)
+            function sendOffer() {
+                // Vérifier si tous les champs requis sont remplis
+                if (!productCategory.value || !programType.value || selectedSegments.length === 0 || !offerMessage.value.trim()) {
+                    alert('Veuillez remplir tous les champs requis.');
+                    return;
+                }
+                
+                // Simuler l'envoi (normalement, on ferait un appel API ici)
+                const targetCount = previewCount.textContent;
+                
+                // Afficher un spinner sur le bouton
+                const originalContent = sendOfferBtn.innerHTML;
+                sendOfferBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Envoi en cours...';
+                sendOfferBtn.disabled = true;
+                
+                // Simuler un délai de traitement
+                setTimeout(() => {
+                    // Réinitialiser le bouton
+                    sendOfferBtn.innerHTML = originalContent;
+                    sendOfferBtn.disabled = false;
+                    
+                    // Afficher une notification de succès
+                    const notification = document.createElement('div');
+                    notification.className = 'alert alert-success mt-3';
+                    notification.innerHTML = `
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Succès!</strong> Votre offre a été envoyée à ${targetCount} clients.
+                    `;
+                    
+                    // Ajouter la notification avant le bouton d'envoi
+                    document.querySelector('.send-btn').before(notification);
+                    
+                    // Faire disparaître la notification après quelques secondes
+                    setTimeout(() => {
+                        notification.style.opacity = '0';
+                        setTimeout(() => notification.remove(), 500);
+                    }, 5000);
+                    
+                    // Réinitialiser le formulaire
+                    productCategory.value = '';
+                    programType.value = '';
+                    offerMessage.value = '';
+                    segmentOptions.forEach(opt => opt.classList.remove('active'));
+                    selectedSegments = [];
+                    updatePreview();
+                    
+                }, 1500);
+            }
+            
+            // Initialiser
+            initOfferFunctionality();
+        });
+    </script>
+</body>
+</html> 

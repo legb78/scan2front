@@ -203,6 +203,65 @@ app.post('/api/prediction', (req, res) => {
   });
 });
 
+// API endpoint for loyalty program recommendations
+app.post('/api/loyalty-recommendations', (req, res) => {
+  const pythonScript = path.join(__dirname, 'scripts', 'loyalty_recommendation.py');
+  const loyaltyPath = path.join(__dirname, 'data', 'loyalty_points.json');
+  const purchasesPath = path.join(__dirname, 'data', 'achats_clients_500.json');
+  
+  // Ensure both data files exist
+  if (!fs.existsSync(loyaltyPath) || !fs.existsSync(purchasesPath)) {
+    return res.status(500).json({ error: 'Data files not found' });
+  }
+  
+  // Get parameters from request
+  const { segments = 5 } = req.body;
+  
+  // Run Python script as a child process
+  const python = spawn('python', [
+    pythonScript,
+    '--loyalty', loyaltyPath,
+    '--purchases', purchasesPath,
+    '--segments', segments.toString()
+  ]);
+  
+  let dataFromPython = '';
+  let errorFromPython = '';
+
+  // Collect data from script
+  python.stdout.on('data', (data) => {
+    dataFromPython += data.toString();
+  });
+  
+  // Collect errors from script
+  python.stderr.on('data', (data) => {
+    errorFromPython += data.toString();
+  });
+  
+  // Handle process completion
+  python.on('close', (code) => {
+    if (code !== 0) {
+      console.error(`Python process exited with code ${code}`);
+      console.error(errorFromPython);
+      return res.status(500).json({ 
+        error: 'Error running loyalty recommendations analysis',
+        details: errorFromPython
+      });
+    }
+    
+    try {
+      const results = JSON.parse(dataFromPython);
+      res.json(results);
+    } catch (parseErr) {
+      console.error('Error parsing Python output:', parseErr);
+      res.status(500).json({ 
+        error: 'Error parsing loyalty recommendations results',
+        details: dataFromPython
+      });
+    }
+  });
+});
+
 // Routes
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'html', 'index.html'));
@@ -226,6 +285,14 @@ app.get('/profiling', (req, res) => {
 
 app.get('/prediction', (req, res) => {
   res.sendFile(path.join(__dirname, 'html', 'prediction.html'));
+});
+
+app.get('/loyalty-programs', (req, res) => {
+  res.sendFile(path.join(__dirname, 'html', 'loyalty-programs.html'));
+});
+
+app.get('/product-loyalty', (req, res) => {
+  res.sendFile(path.join(__dirname, 'html', 'product-loyalty.html'));
 });
 
 // Start server

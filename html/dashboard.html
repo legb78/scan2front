@@ -12,6 +12,59 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <style>
+        /* Styles pour les messages d'erreur et boutons */
+        .error-message {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(255, 240, 240, 0.7);
+            border-radius: 8px;
+            min-height: 150px;
+        }
+        
+        .error-message i {
+            font-size: 2rem;
+            color: #ff5757;
+            margin-bottom: 10px;
+        }
+        
+        .error-message p {
+            margin-bottom: 15px;
+            color: #555;
+        }
+        
+        .btn-retry, .btn-demo {
+            padding: 8px 15px;
+            border-radius: 4px;
+            border: none;
+            margin: 5px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-retry {
+            background-color: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-retry:hover {
+            background-color: #e0e0e0;
+        }
+        
+        .btn-demo {
+            background-color: var(--primary-color, #4361ee);
+            color: white;
+        }
+        
+        .btn-demo:hover {
+            background-color: var(--primary-dark, #3851e0);
+        }
+    </style>
 </head>
 <body>
     <!-- Preloader -->
@@ -566,7 +619,14 @@
         </div>
     </main>
 
+    <!-- Scripts -->
     <script src="../js/dashboard.js"></script>
+    
+    <!-- Bibliothèques pour l'export PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+
     <script>
         // Force la suppression du preloader après 2 secondes
         setTimeout(() => {

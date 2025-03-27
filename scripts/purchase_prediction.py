@@ -14,6 +14,7 @@ from datetime import datetime, timedelta
 import sys
 import warnings
 import logging
+import random
 
 # Configure logging to write to stderr instead of stdout
 logging.basicConfig(level=logging.INFO, stream=sys.stderr, format='%(message)s')
@@ -210,7 +211,7 @@ def prepare_prediction_data(df, features, use_time_series=True):
         
         # Target variable - total purchase amount or number of purchases
         y_amount = df['total_achat'] if 'total_achat' in df.columns else None
-        y_frequency = df['nombre_achats']
+        y_frequency = df['nombre_produits']
         
         # Handle missing values
         X.fillna(X.mean(), inplace=True)
@@ -287,7 +288,7 @@ def predict_future_purchases(df, purchases_df, best_model, scaler, features, pro
         predicted_amounts = best_model.predict(X_pred_scaled)
         
         # For frequency prediction, use a simpler approach based on historical data
-        avg_purchase_frequency = df['nombre_achats'] / df['jours_depuis_inscription']
+        avg_purchase_frequency = df['nombre_produits'] / df['jours_depuis_inscription']
         avg_purchase_frequency = avg_purchase_frequency.fillna(0.01)  # Fill NaNs with small value
         predicted_frequencies = avg_purchase_frequency * 30  # Monthly frequency
         
